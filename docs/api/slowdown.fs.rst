@@ -1,0 +1,2 @@
+.. automodule:: slowdown.fs
+    :members:

@@ -1,0 +1,2 @@
+.. automodule:: slowdown.cgi
+    :members:

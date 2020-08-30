@@ -1,0 +1,2 @@
+.. automodule:: slowdown.http
+    :members:

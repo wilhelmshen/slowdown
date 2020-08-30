@@ -1,0 +1,2 @@
+.. automodule:: slowdown.token
+    :members:
