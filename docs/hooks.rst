@@ -14,7 +14,7 @@ Package initialization hooks
 If a module or package containing a handler is registered in the routing
 configuration, the server will automatically load the module or package and
 executes its existing initialization hook. The hook is a callable object
-with the name `startup` .
+with the name `initialize` .
 
 Example:
 
@@ -26,7 +26,7 @@ Example:
 
     import datetime
 
-    def startup(application):
+    def initialize(application):
         global start_time
         start_time = f'Start time: {datetime.datetime.now()}'
 

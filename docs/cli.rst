@@ -16,9 +16,8 @@ which is located in the `bin` dir.
 
 .. code-block:: console
 
-    usage: bin/slowdown [-h] [-f FILE] [-u USER] [--proc NAME]
-                        [--home DIRECTORY]  [--root DIRECTORY]
-                        [--init] [-v | -vv | -q]
+    usage: bin/slowdown [-h] [-f FILE] [-u USER] [--home DIRECTORY]
+                        [--root DIRECTORY] [--init] [-v | -vv | -q]
 
 
 Options
@@ -38,10 +37,6 @@ Options
 
     Server will running as the specified user, the default is the current
     user.
-
-.. option:: --proc NAME
-
-    Specify the process name.
 
 .. option:: --home DIRECTORY
 
