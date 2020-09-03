@@ -16,6 +16,15 @@ sections and options.
 
     # file: etc/slowdown.conf
 
+    # Predefined directories
+    #
+    %define HOME /PATH/TO/HOME
+    %define BIN  $HOME/bin
+    %define ETC  $HOME/etc
+    %define PKGS $HOME/pkgs
+    %define VAR  $HOME/var
+    %define LOGS $HOME/logs
+
     # Effective User
     # The default is the current user.
     #
@@ -84,13 +93,19 @@ sections and options.
                 #
                 pattern ^(?P<ITWORKS>/.*)$$
 
+                # Logs
+                #
+                #accesslog
+
                 <path ITWORKS>
                     # It works!
                     #
                     # A handler comes from
                     # the slowdown package.
                     #
-                    handler slowdown.__main__
+                    handler   slowdown.__main__
+                    accesslog $LOGS/access.log
+                    errorlog  $LOGS/error.log
                 </path>
             </host>
 
@@ -126,8 +141,8 @@ sections and options.
             #address host:port
 
             router   DEFAULT
-            keyfile  /PATH/TO/server.key
-            certfile /PATH/TO/server.cert
+            keyfile  $ETC/server.key
+            certfile $ETC/server.cert
         </https>
 
         # More servers

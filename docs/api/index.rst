@@ -9,6 +9,7 @@ API reference
     slowdown.mapfs
     slowdown.fs
     slowdown.lrucache
+    slowdown.logging
     slowdown.token
     slowdown.captcha
     slowdown.__main__

@@ -9,7 +9,7 @@ This module contains the configuration schema and the startup script
 implementation of the Slowdown Server::
 
     usage: slowdown [-h] [-f FILE] [-u USER] [--home DIRECTORY]
-                    [--root DIRECTORY] [--init] [-v | -vv | -q]
+                    [--root DIRECTORY] [--init] [-v[v[v]] | -q]
 
 Examples:
 
@@ -32,10 +32,11 @@ Examples:
         user='USER',                    # probably nobody
 
         # The log level
-        # 0 - logging.ERROR
-        # 1 - logging.INFO
-        # 2 - logging.DEBUG
-        verbose=0 or 1 or 2
+        # 0 - quiet
+        # 1 - logging.ERROR
+        # 2 - logging.INFO (default)
+        # 3 - logging.DEBUG
+        verbose=0 or 1 or 2 or 3
     )
 
 ::
@@ -49,7 +50,9 @@ Examples:
                     <host MYHOST>
                         pattern ^(?P<MYPATH>/.*)$$
                         <path MYPATH>
-                            handler MYPACKAGE
+                            handler   MY.PACKAGE
+                            accesslog /PATH/TO/access.log
+                            errorlog  /PATH/TO/error.log
                         </path>
                     </host>
                 </router>
@@ -73,7 +76,6 @@ import gevent.server
 import gevent.signal
 import gevent.ssl
 import io
-import logging
 import os
 import os.path
 import re
@@ -87,6 +89,7 @@ from . import exceptions
 from . import fs
 from . import gvars
 from . import http
+from . import logging
 from . import mapfs
 from . import sysutil
 from . import   __doc__   as package__doc__
@@ -101,7 +104,7 @@ def main(**kwargs):
             "root:str=None, "
             "user:str=None, "
             "proc:str=None, "
-            "verbose:int=0"
+            "verbose:int=2"
         ") -> None"
     )
     try:
@@ -115,7 +118,13 @@ def main(**kwargs):
 
 class Application(dict):
 
-    __slots__ = ['anonymous_servers',
+    """
+    A runtime object created by the __main__.main function that contains
+    configuration information from the command line, profile, and the
+    arguments in the __main__.main function.
+    """
+
+    __slots__ = ['anonymous',
                  'args',
                  'cfg',
                  'fs',
@@ -140,11 +149,10 @@ class Application(dict):
                     module.finalize(self)
                 except Exception as err:
                     exceptions_.append(err)
+        for servers in list(self.servers.values()) + [self.anonymous]:
+            for server in servers:
+                server.stop()
         if getattr(self, 'jobs', None):
-            for servers in list(self.servers.values()) + \
-                           [self.anonymous_servers]:
-                for server in servers:
-                    server.stop()
             try:
                 gevent.killall(self.jobs)
             except gevent.exceptions.BlockingSwitchOutError:
@@ -170,7 +178,10 @@ def spawn(**kwargs):
     if opts.root is not None:
         os.chdir(opts.root)
     # -q, -v, -vv: set the log level
-    gvars.logger.setLevel(gvars.verbose_log_level_map[opts.verbose])
+    if opts.verbose:
+        gvars.logger.level = gvars.levels[opts.verbose]
+    else:
+        gvars.logger.level = logging.DISABLED
     os.environ.update(
         (key.upper(), value) for key, value in
         list(default_environment.items()) +
@@ -193,12 +204,19 @@ def spawn(**kwargs):
     pkgs_dir = os.path.join(opts.home, 'pkgs')
     if pkgs_dir not in sys.path:
         sys.path.append(pkgs_dir)
-    app = Application()
+    fs_  = fs.FS()
+    jobs = Jobs(fs_.spawn())
+    app  = Application()
+    app.fs   = fs_
+    app.jobs = jobs
+    app.cfg  = cfg
+    app.opts = opts
+    app.args = args
     routers = {}
     scripts = {}
     modules = {}
     named_servers = {}
-    anonymous_servers = []
+    anonymous = []
     verbose = opts.verbose
     for entrypoint in cfg.scripts.run:
         if entrypoint not in scripts:
@@ -209,6 +227,26 @@ def spawn(**kwargs):
                 if path_section.handler not in modules:
                     entrypoint = path_section.handler
                     modules[entrypoint] = load_module(entrypoint, verbose)
+                if path_section.section.accesslog:
+                    filename = path_section.section.accesslog
+                    file = logfiles.get(filename)
+                    if file is None:
+                        file = logging.File(fs_, filename)
+                        logfiles[filename] = file
+                        jobs.extend(file.spawn())
+                    path_section.accesslog = logging.Logger(file)
+                else:
+                    path_section.accesslog = None
+                if path_section.section.errorlog:
+                    filename = path_section.section.errorlog
+                    file = logfiles.get(filename)
+                    if file is None:
+                        file = logging.File(fs_, filename)
+                        logfiles[filename] = file
+                        jobs.extend(file.spawn())
+                    path_section.errorlog = logging.Logger(file)
+                else:
+                    path_section.errorlog = None
         routers[router_name] = http.Handler(Handler(app, router), verbose)
     for section in cfg.servers.data:
         servers = []
@@ -238,7 +276,7 @@ def spawn(**kwargs):
                 raise NotImplementedError(f'scheme "{section.type_}" '
                                           'not supported')
         if section.name is None:
-            anonymous_servers.extend(servers)
+            anonymous.extend(servers)
         else:
             named_servers[section.name] = servers
     for entrypoint, module in modules.items():
@@ -252,23 +290,16 @@ def spawn(**kwargs):
                 cgi = None
             if www is not None or cgi is not None:
                 module.handler = mapfs.Mapfs(fs_, www=www, cgi=cgi)
-    fs_  = fs.FS()
-    jobs = Jobs(fs_.spawn())
-    app.fs   = fs_
-    app.jobs = jobs
-    app.cfg  = cfg
-    app.opts = opts
-    app.args = args
     app.routers = routers
     app.scripts = scripts
     app.modules = modules
     app.servers = named_servers
-    app.anonymous_servers = anonymous_servers
+    app.anonymous = anonymous
     jobs._application = weakref.ref(app)
     for module in set(list(scripts.values()) + list(modules.values())):
         if hasattr(module, 'initialize') and callable(module.initialize):
             jobs.append(gevent.spawn(module.initialize, app))
-    for servers in list(named_servers.values()) + [anonymous_servers]:
+    for servers in list(named_servers.values()) + [anonymous]:
         for server in servers:
             server.start()
             if server.ssl_enabled:
@@ -311,13 +342,101 @@ class Handler(object):
     `gevent.server.Server` .
     """
 
-    __slots__ = ['application', 'router']
+    __slots__ = ['application', 'router', 'verbose']
 
     def __init__(self, application, router):
         self.application = application
         self.router      = router
+        self.verbose     = application.opts.verbose
 
     def __call__(self, rw):
+        try:
+            self.process_request(rw)
+        except Exception as err:
+            environ      = rw.environ
+            match        = environ.get('locals.match')
+            if match is None:
+                accesslog    = None
+                errorlog     = None
+            else:
+                path_section = match.path_section
+                accesslog    = path_section.accesslog
+                errorlog     = path_section.errorlog
+            if rw.headers_sent is None:
+                status = '---'
+            else:
+                status = rw.headers_sent
+                p = status.find(' ')
+                if p > 0:
+                    status = status[0:p]
+            tb = exc()
+            if errorlog is not None:
+                errorlog.error(
+                    '%s %s %r %s %r %s %r %r' % (
+                        status,
+                        environ['REQUEST_METHOD'],
+                        environ['PATH_INFO'],
+                        environ['REMOTE_ADDR'],
+                        environ['HTTP_USER_AGENT'],
+                        err.__class__.__name__,
+                        str(err),
+                        tb
+                    )
+                )
+            if self.verbose and \
+               logging.ERROR >= gvars.levels[self.verbose]:
+                gvars.logger.error(
+                    '%s %s %r %s %r %s %r\n%s\n' % (
+                        status,
+                        environ['REQUEST_METHOD'],
+                        environ['PATH_INFO'],
+                        environ['REMOTE_ADDR'],
+                        environ['HTTP_USER_AGENT'],
+                        err.__class__.__name__,
+                        str(err),
+                        tb
+                    )
+                )
+            if accesslog is not None:
+                accesslog.access(
+                    '%s %s %r %s %r' % (
+                        status,
+                        environ['REQUEST_METHOD'],
+                        environ['PATH_INFO'],
+                        environ['REMOTE_ADDR'],
+                        environ['HTTP_USER_AGENT']
+                    )
+                )
+        else:
+            environ      = rw.environ
+            match        = environ.get('locals.match')
+            if match is None:
+                accesslog    = None
+            else:
+                path_section = match.path_section
+                accesslog    = path_section.accesslog
+            if rw.headers_sent is None:
+                status = '---'
+            else:
+                status = rw.headers_sent
+                p = status.find(' ')
+                if p > 0:
+                    status = status[0:p]
+            msg = \
+                '%s %s %r %s %r' % (
+                    status,
+                    environ['REQUEST_METHOD'],
+                    environ['PATH_INFO'],
+                    environ['REMOTE_ADDR'],
+                    environ['HTTP_USER_AGENT']
+                )
+            if accesslog is not None:
+                accesslog.access(msg)
+            if self.verbose and \
+               logging.DEBUG >= gvars.levels[self.verbose]:
+                gvars.logger.access(msg)
+
+    def process_request(self, rw):
         environ = rw.environ
         result  = \
             self.router(
@@ -347,7 +466,7 @@ def load_module(entrypoint, verbose=0):
         msg = exc()
         broken = Broken(entrypoint, err, msg, verbose)
         sys.modules[entrypoint] = broken
-        if verbose > 0:
+        if verbose:
             gvars.logger.error(msg)
         return broken
 
@@ -374,7 +493,7 @@ class Broken(type(sys)):
         The HTTP handler that always sends the '500 Internal Server Error'
         page.
         """
-        if self.verbose > 1:
+        if self.verbose and logging.DEBUG >= gvars.levels[self.verbose]:
             return \
                 rw.send_html_and_close(
                     '500 Internal Server Error',
@@ -392,6 +511,8 @@ def exc():
 
 def handler(rw):
     rw.send_html_and_close(content=itworks_content)
+
+logfiles = weakref.WeakValueDictionary()
 
 # By default, DummyThreadPool is used, which is a threadpool that does not
 # actually use threads and blocks the entrie program.
@@ -483,7 +604,7 @@ def parse(**kwargs):
         opts.verbose = 0
     elif args.verbose is not None:
         assert isinstance(args.verbose, int)
-        max_verbose = max(gvars.verbose_log_level_map.keys())
+        max_verbose = len(gvars.levels) - 1
         if args.verbose >= max_verbose:
             opts.verbose = max_verbose
         else:
@@ -496,7 +617,7 @@ def ParserFactory(**kwargs):
     default_home = kwargs.get('home')
     if default_home is None:
         default_home = \
-            os.path.realpath(
+            os.path.abspath(
                 os.path.join(
                     os.path.dirname(sys.argv[0]),
                     os.path.pardir
@@ -666,194 +787,6 @@ def get_default_root(home):
     return os.path.join(home, 'var')
 
 ###########################################################################
-#                             Initialization                              #
-###########################################################################
-
-def init(args):
-    home = args.home
-    while True:
-        a1 = input(f'Initialize a project in {home}? [Y/n]:')
-        a2 = a1.strip().lower()
-        if   a2 in ['n', 'no']:
-            print ('Do nothing, quit.')
-            return
-        elif a2 in ['', 'y', 'yes']:
-            break
-        else:
-            print (f'Unknown answer {a1}.')
-    # create etc, var, pkgs dirs
-    bin_dir  = os.path.join( home  , 'bin' )
-    etc_dir  = os.path.join( home  , 'etc' )
-    lib_dir  = os.path.join( home  , 'lib' )
-    pkgs_dir = os.path.join( home  , 'pkgs')
-    var_dir  = os.path.join( home  , 'var' )
-    log_dir  = os.path.join(var_dir, 'log' )
-    for dir_ in [bin_dir, etc_dir, var_dir, pkgs_dir]:
-        sys.stdout.write(f'Creating {dir_} ... ')
-        sys.stdout.flush()
-        if   not os.path.exists(dir_):
-            os.makedirs(dir_)
-            print ('done')
-        elif not os.path.isdir(dir_):
-            print ('faild')
-            print (f'ERROR! {dir_} exists, but is not a directory.')
-            return
-        else:
-            print ('exists')
-    # create startup script if not exists
-    name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-    script_name = name
-    script_path = os.path.join(bin_dir, script_name)
-    sys.stdout.write(f'Creating {script_path} ... ')
-    sys.stdout.flush()
-    if   not os.path.exists(script_path):
-        code = script_in.format(interpreter=sys.executable)
-        with open(script_path, 'wb') as file_out:
-            file_out.write(code.encode())
-        print ('done')
-    elif not os.path.isfile(script_path):
-        print (f'ERROR! {dir_} exists, but is not a file.')
-    else:
-        print ('exists')
-    # create config file if not exists
-    conf_name = name + '.conf'
-    conf_path = os.path.join(etc_dir, conf_name)
-    sys.stdout.write(f'Creating {conf_path} ... ')
-    sys.stdout.flush()
-    if   not os.path.exists(conf_path):
-        with open(conf_path, 'wb') as file_out:
-            file_out.write(config_in.encode())
-        print ('done')
-    elif not os.path.isfile(conf_path):
-        print (f'ERROR! {dir_} exists, but is not a file.')
-    else:
-        print ('exists')
-    print ('DONE! Completed all initialization steps.')
-
-script_in = '''\
-#!{interpreter}
-# -*- coding: utf-8 -*-
-import re
-import slowdown.__main__
-import sys
-if __name__ == '__main__':
-    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
-    sys.exit(slowdown.__main__.main())
-'''
-config_in = '''\
-# Effective User
-# The default is the current user.
-#
-#user nobody
-
-# Process Name
-#
-#proc slowdown
-
-# Log Level
-#
-# Set log level to logging.DEBUG:
-#verbose 2
-# Set log level to logging.INFO:
-#verbose 1
-# Quiet mode (default):
-verbose 0
-
-<resource>
-    # Limits for open files
-    #
-    RLIMIT_NOFILE 65535
-</resource>
-
-<environment>
-    # By default, DummyThreadPool is used, which is a threadpool that
-    # does not actually use threads and blocks the entrie program.
-    #
-    #GEVENT_THREADPOOL slowdown.threadpool.DummyThreadPool
-
-    # Other runtime environment
-    #
-    #ENV value
-</environment>
-
-# URL Routing based on regular expression.
-<routers>
-    <router DEFAULT>
-
-        # A regular expression to match hosts
-        # Group name must be uppercased
-        #
-        pattern ^(?P<ALL_HOSTS>.*)$$
-
-        <host ALL_HOSTS>
-
-            # A reqular expression to match PATH_INFO and set
-            # rw.environ['locals.path_info'] to the named group.
-            # Group name must be uppercased.
-            #
-            pattern ^(?P<ITWORKS>/.*)$$
-
-            <path ITWORKS>
-
-                # It works!
-                #
-                # A handler comes from
-                # the slowdown package.
-                handler slowdown.__main__
-
-            </path>
-        </host>
-
-        # More hosts ..
-        #
-        #<host HOSTNAME>...</host>
-    </router>
-
-    # More routers
-    #
-    #<router>...</router>
-</routers>
-
-<servers>
-    <http MY_HTTP_SERVER>
-        address  0.0.0.0:8080
-
-        # More addresses
-        #
-        #address host:port
-
-        router   DEFAULT
-    </http>
-
-    #<https MY_HTTPS_SERVER>
-    #    address  0.0.0.0:8443
-    #    address  127.0.0.1:9443
-    #
-    #    # More addresses
-    #    #
-    #    #address host:port
-    #
-    #    router   DEFAULT
-    #    keyfile  /PATH/TO/server.key
-    #    certfile /PATH/TO/server.cert
-    #</https>
-
-    # More servers
-    #
-    #<http>...</http>
-    #<https>...</https>
-</servers>
-
-# Run scripts at startup
-<scripts>
-    # More scripts
-    #
-    # Run a module or package with `main` function:
-    #run SCRIPT
-</scripts>
-'''
-
-###########################################################################
 #                              Configuration                              #
 ###########################################################################
 
@@ -901,7 +834,7 @@ class Router(object):
     __slots__ = ['args', 'groups', 'name', 'regex', 'section']
 
     def __init__(self, section):
-        self.name    = section_name_normalize(section)
+        self.name    = NormalizedSectionName(section)
         self.args    = section.args
         self.section = section
         self.groups  = {}
@@ -958,7 +891,7 @@ class HostSection(object):
     __slots__ = ['args', 'groups', 'name', 'regex', 'section']
 
     def __init__(self, section):
-        self.name    = section_name_normalize(section)
+        self.name    = NormalizedSectionName(section)
         self.args    = section.args
         self.section = section
         self.groups  = {}
@@ -977,13 +910,28 @@ class HostSection(object):
 
 class PathSection(object):
 
-    __slots__ = ['args', 'handler', 'name', 'section']
+    __slots__ = ['accesslog',
+                 'args',
+                 'errorlog',
+                 'handler',
+                 'name',
+                 'section']
 
     def __init__(self, section):
-        self.name    = section_name_normalize(section)
+        self.name    = NormalizedSectionName(section)
         self.args    = section.args
         self.section = section
         self.handler = section.handler
+
+def AbsolutePathString(s):
+    if not s.startswith(os.path.sep):
+        raise ValueError(f'relative path {repr(s)} is not allowed here, '
+                         'please use absolute path instead')
+    name = os.path.basename(s)
+    base = os.path.dirname(s)
+    if not os.path.isdir(base):
+        raise ValueError(f'{repr(base)} is not an existing folder')
+    return os.path.join(os.path.abspath(base), name)
 
 def RegexString(s):
     try:
@@ -1015,7 +963,7 @@ class MatchResult(object):
         #: the matching `<path>` configuration section
         self.path_section = path_section
 
-def section_name_normalize(section):
+def NormalizedSectionName(section):
     return \
         ','.join(
             name for name in
@@ -1063,6 +1011,10 @@ schema = '''
 
 <sectiontype name="path" datatype="slowdown.__main__.PathSection">
     <key name="handler" datatype="string" required="yes" />
+    <key name="accesslog" datatype="slowdown.__main__.AbsolutePathString"
+         required="no" />
+    <key name="errorlog" datatype="slowdown.__main__.AbsolutePathString"
+         required="no" />
     <key name="+" attribute="args" />
 </sectiontype>
 <sectiontype name="host" datatype="slowdown.__main__.HostSection">
@@ -1103,10 +1055,222 @@ schema = '''
 <key name="user" datatype="identifier" required="no" />
 <key name="home" datatype="existing-directory" required="no" />
 <key name="root" datatype="existing-directory" required="no" />
-<key name="verbose" datatype="integer" default="0" required="no" />
+<key name="verbose" datatype="integer" default="2" required="no" />
 <section type="environment" attribute="environment" required="no" />
 <section type="resource" attribute="resource" required="no" />
 <section type="scripts" attribute="scripts" required="no" />
 <section type="routers" attribute="routers" required="no" />
 <section type="servers" attribute="servers" required="no" />
+'''
+
+###########################################################################
+#                             Initialization                              #
+###########################################################################
+
+def init(args):
+    home = args.home
+    while True:
+        a1 = input(f'Initialize a project in {home}? [Y/n]:')
+        a2 = a1.strip().lower()
+        if   a2 in ['n', 'no']:
+            print ('Do nothing, quit.')
+            return
+        elif a2 in ['', 'y', 'yes']:
+            break
+        else:
+            print (f'Unknown answer {a1}.')
+    # create etc, var, pkgs dirs
+    bin_dir  = os.path.join(home, 'bin' )
+    etc_dir  = os.path.join(home, 'etc' )
+    lib_dir  = os.path.join(home, 'lib' )
+    pkgs_dir = os.path.join(home, 'pkgs')
+    var_dir  = os.path.join(home, 'var' )
+    logs_dir = os.path.join(home, 'logs')
+    for dir_ in [bin_dir, etc_dir, var_dir, pkgs_dir, logs_dir]:
+        sys.stdout.write(f'Creating {dir_} ... ')
+        sys.stdout.flush()
+        if   not os.path.exists(dir_):
+            os.makedirs(dir_)
+            print ('done')
+        elif not os.path.isdir(dir_):
+            print ('faild')
+            print (f'ERROR! {dir_} exists, but is not a directory.')
+            return
+        else:
+            print ('exists')
+    # create startup script if not exists
+    name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+    script_name = name
+    script_path = os.path.join(bin_dir, script_name)
+    sys.stdout.write(f'Creating {script_path} ... ')
+    sys.stdout.flush()
+    if   not os.path.exists(script_path):
+        code = script_in.format(interpreter=sys.executable)
+        with open(script_path, 'wb') as file_out:
+            file_out.write(code.encode())
+        print ('done')
+    elif not os.path.isfile(script_path):
+        print (f'ERROR! {dir_} exists, but is not a file.')
+    else:
+        print ('exists')
+    # create config file if not exists
+    conf_name = name + '.conf'
+    conf_path = os.path.join(etc_dir, conf_name)
+    sys.stdout.write(f'Creating {conf_path} ... ')
+    sys.stdout.flush()
+    if   not os.path.exists(conf_path):
+        with open(conf_path, 'wb') as file_out:
+            code = \
+                config_in.format(
+                        home=home,
+                     bin_dir=bin_dir,
+                     etc_dir=etc_dir,
+                     lib_dir=lib_dir,
+                    pkgs_dir=pkgs_dir,
+                     var_dir=var_dir,
+                    logs_dir=logs_dir
+                )
+            file_out.write(code.encode())
+        print ('done')
+    elif not os.path.isfile(conf_path):
+        print (f'ERROR! {dir_} exists, but is not a file.')
+    else:
+        print ('exists')
+    print ('DONE! Completed all initialization steps.')
+
+script_in = '''\
+#!{interpreter}
+# -*- coding: utf-8 -*-
+import re
+import slowdown.__main__
+import sys
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(slowdown.__main__.main())
+'''
+config_in = '''\
+# Predefined directories
+#
+%define HOME {home}
+%define BIN  {bin_dir}
+%define ETC  {etc_dir}
+%define PKGS {pkgs_dir}
+%define VAR  {var_dir}
+%define LOGS {logs_dir}
+
+# Effective User, the default is the current user.
+#
+#user nobody
+
+# Log Level
+#
+# Set log level to logging.DEBUG:
+#verbose 3
+#
+# Set log level to logging.INFO (default):
+#verbose 2
+#
+# Set log level to logging.ERROR:
+#verbose 1
+#
+# Quiet mode:
+#verbose 0
+
+<resource>
+    # Limits for open files
+    #
+    RLIMIT_NOFILE 65535
+</resource>
+
+<environment>
+    # By default, DummyThreadPool is used, which is a threadpool that
+    # does not actually use threads and blocks the entrie program.
+    #
+    #GEVENT_THREADPOOL slowdown.threadpool.DummyThreadPool
+
+    # Other runtime environment
+    #
+    #ENV value
+</environment>
+
+# Run scripts at startup
+<scripts>
+    # More scripts
+    #
+    # Run a module or package with `main` function:
+    #run SCRIPT
+</scripts>
+
+# URL Routing based on regular expression.
+<routers>
+    <router DEFAULT>
+
+        # A regular expression to match hosts
+        # Group name must be uppercased
+        #
+        pattern ^(?P<ALL_HOSTS>.*)$$
+
+        <host ALL_HOSTS>
+
+            # A reqular expression to match PATH_INFO and set
+            # rw.environ['locals.path_info'] to the named group.
+            # Group name must be uppercased.
+            #
+            pattern ^(?P<ITWORKS>/.*)$$
+
+            <path ITWORKS>
+
+                # It works!
+                #
+                # A handler comes from
+                # the slowdown package.
+                handler   slowdown.__main__
+
+                # Logs
+                #
+                #accesslog $LOGS/access.log
+                #errorlog  $LOGS/error.log
+
+            </path>
+        </host>
+
+        # More hosts ..
+        #
+        #<host HOSTNAME>...</host>
+    </router>
+
+    # More routers
+    #
+    #<router>...</router>
+</routers>
+
+<servers>
+    <http MY_HTTP_SERVER>
+        address  0.0.0.0:8080
+
+        # More addresses
+        #
+        #address host:port
+
+        router   DEFAULT
+    </http>
+
+    #<https MY_HTTPS_SERVER>
+    #    address  0.0.0.0:8443
+    #    address  127.0.0.1:9443
+    #
+    #    # More addresses
+    #    #
+    #    #address host:port
+    #
+    #    router   DEFAULT
+    #    keyfile  $ETC/server.key
+    #    certfile $ETC/server.cert
+    #</https>
+
+    # More servers
+    #
+    #<http>...</http>
+    #<https>...</https>
+</servers>
 '''

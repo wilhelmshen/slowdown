@@ -114,7 +114,7 @@ import urllib.parse
 
 from . import urlencode
 
-http_header_encoding = 'iso8859-1'
+http_header_encoding  = 'utf-8'  # or 'iso8859-1'
 http_content_encoding = 'utf-8'
 default_mime_type = 'application/octet-stream'
 header_parsing_timeout = 60.
@@ -155,7 +155,7 @@ class Handler(object):
                     try:
                         environ = new_environ(reader, server_side=True)
                     except:
-                        if self.verbose > 1:
+                        if self.verbose:
                             raise
                         else:
                             return
@@ -165,7 +165,7 @@ class Handler(object):
                 try:
                     self.handler(rw)
                 except:
-                    if self.verbose > 1:
+                    if self.verbose:
                         raise
                     else:
                         return
@@ -188,7 +188,7 @@ class Handler(object):
                 try:
                     gevent.socket.wait_read(socket.fileno(), n_keep_alive)
                 except:
-                    if self.verbose > 1:
+                    if self.verbose:
                         raise
                     else:
                         return
@@ -220,7 +220,7 @@ class File(object):
         self.left    = environ['locals.content_length']
         self.chunked = False
         self.closed  = False
-        self.headers_sent = False
+        self.headers_sent = None
         self.disconnected = False
 
     @property
@@ -247,7 +247,7 @@ class File(object):
         """)
         if self.closed:
             raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
-        if self.headers_sent:
+        if self.headers_sent is not None:
             raise RuntimeError('header already sent')
         b_status  = as_bytes(status, http_header_encoding)
         b_version = as_bytes(self.environ['SERVER_PROTOCOL'],
@@ -266,7 +266,7 @@ class File(object):
                 buf.append(b'Set-Cookie: ' + b_value)
         buf.append(b'\r\n')
         self.socket.sendall(b'\r\n'.join(buf))
-        self.headers_sent = True
+        self.headers_sent = status
 
     def start_chunked(self, status='200 OK', headers=None, cookie=None):
         (   "start_chunked("
@@ -279,7 +279,7 @@ class File(object):
         """)
         if self.closed:
             raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
-        if self.headers_sent:
+        if self.headers_sent is not None:
             raise RuntimeError('header already sent')
         b_status  = as_bytes(status)
         b_version = as_bytes(self.environ['SERVER_PROTOCOL'],
@@ -299,7 +299,7 @@ class File(object):
                 buf.append(b'Set-Cookie: ' + b_value)
         buf.append(b'\r\n')
         self.socket.sendall(b'\r\n'.join(buf))
-        self.headers_sent = True
+        self.headers_sent = status
         self.chunked = True
 
     def send_response_and_close(self, status='200 OK', headers=None,
@@ -313,7 +313,7 @@ class File(object):
         )
         if self.closed:
             raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
-        if self.headers_sent:
+        if self.headers_sent is not None:
             raise RuntimeError('header already sent')
         b_status  = as_bytes(status)
         b_version = as_bytes(self.environ['SERVER_PROTOCOL'],
@@ -336,7 +336,7 @@ class File(object):
             buf.append(b'Content-Length: %d\r\n' % len(content))
             buf.append(content)
         self.socket.sendall(b'\r\n'.join(buf))
-        self.headers_sent = True
+        self.headers_sent = status
         self.closed = True
 
     def send_html_and_close(self, status='200 OK', headers=None,
@@ -351,7 +351,7 @@ class File(object):
         )
         if self.closed:
             raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
-        if self.headers_sent:
+        if self.headers_sent is not None:
             raise RuntimeError('header already sent')
         b_status  = as_bytes(status)
         b_version = as_bytes(self.environ['SERVER_PROTOCOL'],
@@ -389,7 +389,7 @@ class File(object):
                            % (as_bytes(encoding), len(b_content)))
             buf.append(b_content)
         self.socket.sendall(b'\r\n'.join(buf))
-        self.headers_sent = True
+        self.headers_sent = status
         self.closed = True
 
     def read(self, size=-1):
@@ -988,9 +988,11 @@ def translate_url(base, url):
     return result
 
 def as_bytes(string, encoding=None):
-    """
-    as_bytes(string:Union[str,bytes], encoding:str=None) -> bytes
-    """
+    (   "as_bytes("
+            "string:Union[str,bytes], "
+            "encoding:str=None"
+        ") -> bytes"
+    )
     if   isinstance(string, str):
         return \
             string.encode(
