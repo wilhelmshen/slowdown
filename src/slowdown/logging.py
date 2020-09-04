@@ -8,25 +8,19 @@
 
 import gevent
 import gevent.queue
-import logging
 import os.path
 import sys
 import time
 import weakref
+
+from logging import CRITICAL, DEBUG, ERROR, FATAL, INFO, NOTSET, WARNING
 
 default_file_queue_maxsize = 2048
 
 __all__ = ['File', 'Logger']
 
 DISABLED  = 0xffff
-CRITICAL  = logging.CRITICAL
-assert DISABLED  >  CRITICAL
-FATAL     = CRITICAL
-ERROR     = logging.ERROR
-WARNING   = logging.WARNING
-INFO      = logging.INFO
-DEBUG     = logging.DEBUG
-NOTSET    = logging.NOTSET
+assert DISABLED > CRITICAL
 levelcode = \
     {
         'DISABLED': DISABLED,
@@ -116,9 +110,7 @@ class Logger(object):
         Log a message with severity 'CRITICAL' on the error log.
         """)
         if CRITICAL >= self.level:
-            self.file.write(self.format_errorlog(CRITICAL, msg))
-            if self.immediately:
-                self.file.flush()
+            self._log_error(CRITICAL, msg)
 
     def fatal(self, msg):
         (   "fatal("
@@ -128,9 +120,7 @@ class Logger(object):
         Log a message with severity 'FATAL' on the error log.
         """)
         if FATAL >= self.level:
-            self.file.write(self.format_errorlog(FATAL, msg))
-            if self.immediately:
-                self.file.flush()
+            self._log_error(FATAL, msg)
 
     def error(self, msg):
         (   "error("
@@ -140,9 +130,7 @@ class Logger(object):
         Log a message with severity 'ERROR' on the error log.
         """)
         if ERROR >= self.level:
-            self.file.write(self.format_errorlog(ERROR, msg))
-            if self.immediately:
-                self.file.flush()
+            self._log_error(ERROR, msg)
 
     def warning(self, msg):
         (   "warning("
@@ -152,9 +140,7 @@ class Logger(object):
         Log a message with severity 'WARNING' on the error log.
         """)
         if WARNING >= self.level:
-            self.file.write(self.format_errorlog(ERROR, msg))
-            if self.immediately:
-                self.file.flush()
+            self._log_error(WARNING, msg)
 
     def warn(self, msg):
         (   "warn("
@@ -164,9 +150,7 @@ class Logger(object):
         Log a message with severity 'WARNING' on the error log.
         """)
         if WARNING >= self.level:
-            self.file.write(self.format_errorlog(ERROR, msg))
-            if self.immediately:
-                self.file.flush()
+            self._log_error(WARNING, msg)
 
     def info(self, msg):
         (   "info("
@@ -176,9 +160,7 @@ class Logger(object):
         Log a message with severity 'INFO' on the error log.
         """)
         if INFO >= self.level:
-            self.file.write(self.format_errorlog(INFO, msg))
-            if self.immediately:
-                self.file.flush()
+            self._log_error(INFO, msg)
 
     def debug(self, msg):
         (   "debug("
@@ -188,17 +170,18 @@ class Logger(object):
         Log a message with severity 'DEBUG' on the error log.
         """)
         if DEBUG >= self.level:
-            self.file.write(self.format_errorlog(DEBUG, msg))
-            if self.immediately:
-                self.file.flush()
+            self._log_error(DEBUG, msg)
 
-    def format_errorlog(self, level, msg):
-        return \
+    def _log_error(self, level, msg):
+        self.file.write(
             self.errorlog_fmt.format(
                 time=time.strftime(self.strftime_fmt),
                 level=self.level_name_map[level],
                 msg=msg
             )
+        )
+        if self.immediately:
+            self.file.flush()
 
 class File(object):
 
