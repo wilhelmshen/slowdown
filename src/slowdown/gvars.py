@@ -10,5 +10,5 @@ from . import logging
 
 __all__ = ['logger']
 
-levels = [logging.CRITICAL, logging.INFO, logging.DEBUG]
+levels = [logging.DISABLED, logging.INFO, logging.DEBUG]
 logger = logging.Logger()

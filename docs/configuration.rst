@@ -53,10 +53,9 @@ sections and options.
 
     <environment>
 
-        # By default, DummyThreadPool is used, which is a threadpool that
-        # does not actually use threads and blocks the entrie program.
+        # By default, FileObjectThread is used.
         #
-        #GEVENT_THREADPOOL slowdown.threadpool.DummyThreadPool
+        #GEVENT_FILE thread
 
         # Other runtime environment
         #

@@ -86,7 +86,6 @@ import weakref
 import ZConfig.loader
 
 from . import exceptions
-from . import fs
 from . import gvars
 from . import http
 from . import logging
@@ -163,7 +162,6 @@ class Application(dict):
                 raise exceptions_[0]
             else:
                 raise exceptions.Exceptions(exceptions_)
-        sys.exit(0)
 
 def spawn(**kwargs):
     """
@@ -204,6 +202,9 @@ def spawn(**kwargs):
     pkgs_dir = os.path.join(opts.home, 'pkgs')
     if pkgs_dir not in sys.path:
         sys.path.append(pkgs_dir)
+
+    from . import fs
+
     fs_  = fs.FS()
     jobs = Jobs(fs_.spawn())
     app  = Application()
@@ -234,7 +235,11 @@ def spawn(**kwargs):
                         file = logging.File(fs_, filename)
                         logfiles[filename] = file
                         jobs.extend(file.spawn())
-                    path_section.accesslog = logging.Logger(file)
+                    path_section.accesslog = \
+                        logging.Logger(
+                                   file,
+                            immediately=False
+                        )
                 else:
                     path_section.accesslog = None
                 if path_section.section.errorlog:
@@ -408,8 +413,8 @@ class Handler(object):
                     )
                 )
         else:
-            environ      = rw.environ
-            match        = environ.get('locals.match')
+            environ = rw.environ
+            match   = environ.get('locals.match')
             if match is None:
                 accesslog    = None
             else:
@@ -514,13 +519,7 @@ def handler(rw):
 
 logfiles = weakref.WeakValueDictionary()
 
-# By default, DummyThreadPool is used, which is a threadpool that does not
-# actually use threads and blocks the entrie program.
-default_environment = \
-    {
-        'GEVENT_THREADPOOL': 'slowdown.threadpool.DummyThreadPool'
-    }
-
+default_environment = {'GEVENT_FILE': 'thread'}
 http_content_encoding = 'utf-8'
 itworks_content  = '''\
 <html><head><title>200 OK</title></head><body><h1>It works!</h1><hr />
@@ -753,7 +752,6 @@ def ParserFactory(**kwargs):
              action='count',
                help=('print debug messages, the default is '
                      f'"-{"v" * default_verbose}"'),
-            default=default_verbose
         )
         group.add_argument(
                     '-q',
@@ -1144,7 +1142,7 @@ script_in = '''\
 import re
 import slowdown.__main__
 import sys
-if __name__ == '__main__':
+if '__main__' == __name__:
     sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
     sys.exit(slowdown.__main__.main())
 '''

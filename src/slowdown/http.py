@@ -112,6 +112,8 @@ import re
 import sys
 import urllib.parse
 
+from . import gvars
+from . import logging
 from . import urlencode
 
 http_header_encoding  = 'utf-8'  # or 'iso8859-1'
@@ -155,7 +157,8 @@ class Handler(object):
                     try:
                         environ = new_environ(reader, server_side=True)
                     except:
-                        if self.verbose:
+                        if self.verbose and \
+                           logging.DEBUG >= gvars.levels[self.verbose]:
                             raise
                         else:
                             return
@@ -165,7 +168,8 @@ class Handler(object):
                 try:
                     self.handler(rw)
                 except:
-                    if self.verbose:
+                    if self.verbose and \
+                       logging.DEBUG >= gvars.levels[self.verbose]:
                         raise
                     else:
                         return
@@ -188,7 +192,8 @@ class Handler(object):
                 try:
                     gevent.socket.wait_read(socket.fileno(), n_keep_alive)
                 except:
-                    if self.verbose:
+                    if self.verbose and \
+                       logging.DEBUG >= gvars.levels[self.verbose]:
                         raise
                     else:
                         return
