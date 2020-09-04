@@ -374,7 +374,7 @@ class Handler(object):
                 p = status.find(' ')
                 if p > 0:
                     status = status[0:p]
-            if isinstance(err, BrokenPipeError):
+            if isinstance(err, ignored_exceptions):
                 if logging.DEBUG >= gvars.levels[self.verbose]:
                     tb = exc()
                     if errorlog is not None:
@@ -534,11 +534,10 @@ def exc():
     return file.getvalue()
 
 def handler(rw):
-    rw.not_found()
     rw.send_html_and_close(content=itworks_content)
 
 logfiles = weakref.WeakValueDictionary()
-
+ignored_exceptions = (BrokenPipeError, gevent.Timeout)
 default_environment = {'GEVENT_FILE': 'thread'}
 http_content_encoding = 'utf-8'
 itworks_content  = '''\
@@ -1073,7 +1072,7 @@ schema = '''
 <key name="user" datatype="identifier" required="no" />
 <key name="home" datatype="existing-directory" required="no" />
 <key name="root" datatype="existing-directory" required="no" />
-<key name="verbose" datatype="integer" default="2" required="no" />
+<key name="verbose" datatype="integer" default="1" required="no" />
 <section type="environment" attribute="environment" required="no" />
 <section type="resource" attribute="resource" required="no" />
 <section type="scripts" attribute="scripts" required="no" />
@@ -1183,12 +1182,9 @@ config_in = '''\
 # Log Level
 #
 # Set log level to logging.DEBUG:
-#verbose 3
-#
-# Set log level to logging.INFO (default):
 #verbose 2
 #
-# Set log level to logging.ERROR:
+# Set log level to logging.INFO (default):
 #verbose 1
 #
 # Quiet mode:
