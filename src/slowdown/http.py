@@ -251,7 +251,7 @@ class File(object):
         Send the http header.
         """)
         if self.closed:
-            raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
+            raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
         if self.headers_sent is not None:
             raise RuntimeError('header already sent')
         b_status  = as_bytes(status, http_header_encoding)
@@ -283,7 +283,7 @@ class File(object):
         Set the transfer encoding to 'chunked' and send the http header.
         """)
         if self.closed:
-            raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
+            raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
         if self.headers_sent is not None:
             raise RuntimeError('header already sent')
         b_status  = as_bytes(status)
@@ -317,7 +317,7 @@ class File(object):
             ") -> None"
         )
         if self.closed:
-            raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
+            raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
         if self.headers_sent is not None:
             raise RuntimeError('header already sent')
         b_status  = as_bytes(status)
@@ -355,7 +355,7 @@ class File(object):
             ") -> None"
         )
         if self.closed:
-            raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
+            raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
         if self.headers_sent is not None:
             raise RuntimeError('header already sent')
         b_status  = as_bytes(status)
@@ -438,7 +438,7 @@ class File(object):
         Send bytes to client.
         """)
         if self.closed:
-            raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
+            raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
         if self.chunked:
             self.socket.sendall(b'%x\r\n%s\r\n' % (len(data), data))
         else:
@@ -452,7 +452,7 @@ class File(object):
         Send bytes to client.
         """)
         if self.closed:
-            raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
+            raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
         if self.chunked:
             self.socket.sendall(b'%x\r\n%s\r\n' % (len(data), data))
         else:
@@ -868,7 +868,7 @@ def new_environ(reader, server_side=True):
         while size < 8192:
             data = reader.readline(4096)
             if b'' == data:
-                raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
+                raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
             match = regx_first_header_server_side.match(data)
             if match is None:
                 size += len(data)
@@ -890,7 +890,7 @@ def new_environ(reader, server_side=True):
         while size < 8192:
             data = reader.readline(4096)
             if b'' == data:
-                raise gevent.socket.error(errno.EPIPE, 'Broken pipe')
+                raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
             match = regx_first_header_client_side.match(data)
             if match is None:
                 size += len(data)

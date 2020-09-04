@@ -374,34 +374,27 @@ class Handler(object):
                 p = status.find(' ')
                 if p > 0:
                     status = status[0:p]
-            tb = exc()
-            if errorlog is not None:
-                errorlog.error(
-                    '%s %s %r %s %r %s %r %r' % (
-                        status,
-                        environ['REQUEST_METHOD'],
-                        environ['PATH_INFO'],
-                        environ['REMOTE_ADDR'],
-                        environ['HTTP_USER_AGENT'],
-                        err.__class__.__name__,
-                        str(err),
-                        tb
+            if isinstance(err, BrokenPipeError):
+                if logging.DEBUG >= gvars.levels[self.verbose]:
+                    tb = exc()
+                    if errorlog is not None:
+                        errorlog.debug(
+                            self._error_msg(status, environ, err, tb)
+                        )
+                    gvars.logger.debug(
+                        self._error_msg_multiline(status, environ, err, tb)
                     )
-                )
-            if self.verbose and \
-               logging.ERROR >= gvars.levels[self.verbose]:
-                gvars.logger.error(
-                    '%s %s %r %s %r %s %r\n%s\n' % (
-                        status,
-                        environ['REQUEST_METHOD'],
-                        environ['PATH_INFO'],
-                        environ['REMOTE_ADDR'],
-                        environ['HTTP_USER_AGENT'],
-                        err.__class__.__name__,
-                        str(err),
-                        tb
+            else:
+                tb = exc()
+                if errorlog is not None:
+                    errorlog.error(
+                        self._error_msg(status, environ, err, tb)
                     )
-                )
+                if self.verbose and \
+                   logging.ERROR >= gvars.levels[self.verbose]:
+                    gvars.logger.error(
+                        self._error_msg_multiline(status, environ, err, tb)
+                    )
             if accesslog is not None:
                 accesslog.access(
                     '%s %s %r %s %r' % (
@@ -456,6 +449,32 @@ class Handler(object):
         environ['locals.path_info'] = result.path_info
         environ['locals.match'    ] = result
         return module.handler(rw)
+
+    def _error_msg(self, status, environ, err, tb):
+        return \
+            '%s %s %r %s %r %s %r %r' % (
+                status,
+                environ['REQUEST_METHOD'],
+                environ['PATH_INFO'],
+                environ['REMOTE_ADDR'],
+                environ['HTTP_USER_AGENT'],
+                err.__class__.__name__,
+                str(err),
+                tb
+            )
+
+    def _error_msg_multiline(self, status, environ, err, tb):
+        return \
+            '%s %s %r %s %r %s %r\n%s' % (
+                status,
+                environ['REQUEST_METHOD'],
+                environ['PATH_INFO'],
+                environ['REMOTE_ADDR'],
+                environ['HTTP_USER_AGENT'],
+                err.__class__.__name__,
+                str(err),
+                tb
+            )
 
 def load_module(entrypoint, verbose=0):
     try:
@@ -515,6 +534,7 @@ def exc():
     return file.getvalue()
 
 def handler(rw):
+    rw.not_found()
     rw.send_html_and_close(content=itworks_content)
 
 logfiles = weakref.WeakValueDictionary()

@@ -191,7 +191,12 @@ class File(object):
             "encoding:str='utf-8'"
         ")"
     )
-    __slots__ = ['encoding', 'file', 'filename', 'queue', '__weakref__']
+    __slots__ = ['closed',
+                 'encoding',
+                 'file',
+                 'filename',
+                 'queue',
+                 '__weakref__']
 
     def __init__(self, fs, filename, maxsize=-1, encoding='utf-8'):
         if -1 == maxsize:
@@ -200,21 +205,36 @@ class File(object):
         self.queue = gevent.queue.Queue (maxsize)
         self.encoding = encoding
         self.filename = filename
+        self.closed = False
+
+    def __del__(self):
+        if not self.closed:
+            self.close()
 
     def spawn(self):
         _logfile = weakref.ref(self)
-        return [gevent.spawn(write_loop, _logfile)]
+        return [gevent.spawn(bg_writer, _logfile)]
 
     def write(self, data):
+        if self.closed:
+            raise ValueError('I/O operation on closed file.')
         if isinstance(data, str):
             self.queue.put(data.encode(self.encoding))
         else:
             self.queue.put(data)
 
     def flush(self):
+        if self.closed:
+            raise ValueError('I/O operation on closed file.')
         self.queue.put('')
 
-def write_loop(_logfile):
+    def close(self):
+        if not self.closed:
+            self.file.close()
+            self.closed = True
+            self.queue.put(None)
+
+def bg_writer(_logfile):
     its_time_to_flush = False
     while True:
         logfile = _logfile()
@@ -223,30 +243,40 @@ def write_loop(_logfile):
         try:
             data = logfile.queue.get()
         except gevent.GreenletExit as err:
-            return logfile.file.close()
+            logfile.file.close()
+            logfile.closed = True
+            return
         except:
             logfile.file.close()
+            logfile.closed = True
             raise
         if data:
             try:
                 logfile.file.write(data)
             except:
                 logfile.file.close()
+                logfile.closed = True
                 raise
             if logfile.queue.empty() and its_time_to_flush:
                 try:
                     logfile.file.flush()
                 except:
                     logfile.file.close()
+                    logfile.closed = True
                     raise
                 its_time_to_flush = False
-        else:
+        elif data is '':
             if logfile.queue.empty():
                 try:
                     logfile.file.flush()
                 except:
                     logfile.file.close()
+                    logfile.closed = True
                     raise
                 its_time_to_flush = False
             else:
                 its_time_to_flush = True
+        elif data is None:
+            return
+        else:
+            raise TypeError('cannot handle this data type')
