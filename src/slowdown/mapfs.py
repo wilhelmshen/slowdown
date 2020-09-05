@@ -120,7 +120,7 @@ from . import inotify
 from . import lrucache
 
 default_index_html   = 'index.html'
-default_index_script = 'index_html'
+default_index_script = 'index.html'
 default_max_file_cache_size  = 0x200000
 default_static_files_cache_size = 20000
 default_scripts_cache_size      = 20000
@@ -148,7 +148,8 @@ class Mapfs(object):
     :param str cgi: the directory where scripts are stored.
     """)
 
-    __slots__ = ['cgi_dir',
+    __slots__ = ['application',
+                 'cgi_dir',
                  'fs',
                  'index_html',
                  'index_script',
@@ -163,11 +164,12 @@ class Mapfs(object):
                  'static_files_cache',
                  'www_dir']
 
-    def __init__(self, fs, www, cgi, max_file_cache_size=None,
+    def __init__(self, application, www, cgi, max_file_cache_size=None,
                  index_html=None, index_script=None):
-        self.fs      = fs
-        self.www_dir = www
-        self.cgi_dir = cgi
+        self.application = application
+        self.fs          = application.fs
+        self.www_dir     = www
+        self.cgi_dir     = cgi
         self.static_file_watchers = {}
         self.script_watchers      = {}
         if max_file_cache_size is None:
@@ -266,8 +268,9 @@ class Mapfs(object):
             module = self.scripts_cache.get(l_script_name)
             if module is None:
                 module = self.load_script(l_script_name)
-                if hasattr(module, 'startup') and callable(module.startup):
-                    module.startup(self)
+                if hasattr(module, 'initialize') and \
+                   callable(module.initialize):
+                    module.initialize(self)
                 self.scripts_cache[l_script_name] = module
             method = environ['REQUEST_METHOD'].upper()
             handler = getattr(module, method, None)

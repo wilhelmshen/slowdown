@@ -213,7 +213,7 @@ class File(object):
 
     def spawn(self):
         _logfile = weakref.ref(self)
-        return [gevent.spawn(bg_writer, _logfile)]
+        return [gevent.spawn(syncer, _logfile)]
 
     def write(self, data):
         if self.closed:
@@ -234,7 +234,7 @@ class File(object):
             self.closed = True
             self.queue.put(None)
 
-def bg_writer(_logfile):
+def syncer(_logfile):
     its_time_to_flush = False
     while True:
         logfile = _logfile()

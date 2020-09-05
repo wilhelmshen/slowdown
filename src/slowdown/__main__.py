@@ -131,7 +131,6 @@ class Application(dict):
                  'opts',
                  'routers',
                  'modules',
-                 'scripts',
                  'servers',
                  'verbose',
                  '__weakref__']
@@ -141,8 +140,7 @@ class Application(dict):
         Stop servers and exit the program.
         """
         exceptions_ = []
-        for module in set(list(self.scripts.values()) +
-                          list(self.modules.values())):
+        for entrypoint, module in self.modules.items():
             if hasattr(module, 'finalize') and callable(module.finalize):
                 try:
                     module.finalize(self)
@@ -214,20 +212,38 @@ def spawn(**kwargs):
     app.opts = opts
     app.args = args
     routers = {}
-    scripts = {}
     modules = {}
     named_servers = {}
     anonymous = []
     verbose = opts.verbose
-    for entrypoint in cfg.scripts.run:
-        if entrypoint not in scripts:
-            scripts[entrypoint] = load_module(entrypoint, verbose)
+    for entrypoint in cfg.modules.load:
+        if entrypoint not in modules:
+            modules[entrypoint] = load_module(entrypoint, verbose)
     for router_name, router in cfg.routers.items():
         for host_name, host_section in router.groups.items():
             for path_name, path_section in host_section.groups.items():
                 if path_section.handler not in modules:
                     entrypoint = path_section.handler
-                    modules[entrypoint] = load_module(entrypoint, verbose)
+                    module = load_module(entrypoint, verbose)
+                    if not hasattr(module, 'handler'):
+                        base = \
+                            os.path.abspath(
+                                os.path.dirname(module.__file__)
+                            )
+                        www  = os.path.join(base, '__www__')
+                        cgi  = os.path.join(base, '__cgi__')
+                        if not os.path.isdir(www):
+                            www = None
+                        if not os.path.isdir(cgi):
+                            cgi = None
+                        if www is not None or cgi is not None:
+                            module.handler = \
+                                mapfs.Mapfs(
+                                    app,
+                                    www=www,
+                                    cgi=cgi
+                                )
+                    modules[entrypoint] = module
                 if path_section.section.accesslog:
                     filename = path_section.section.accesslog
                     file = logfiles.get(filename)
@@ -252,7 +268,12 @@ def spawn(**kwargs):
                     path_section.errorlog = logging.Logger(file)
                 else:
                     path_section.errorlog = None
-        routers[router_name] = http.Handler(Handler(app, router), verbose)
+        routers[router_name] = \
+            http.Handler(
+                  handler=Handler(app, router),
+                  verbose=verbose,
+                file_type=HTTPRWPair
+            )
     for section in cfg.servers.data:
         servers = []
         if 'HTTP' == section.type_:
@@ -284,26 +305,11 @@ def spawn(**kwargs):
             anonymous.extend(servers)
         else:
             named_servers[section.name] = servers
-    for entrypoint, module in modules.items():
-        if not hasattr(module, 'handler'):
-            base = os.path.abspath(os.path.dirname(module.__file__))
-            www  = os.path.join(base, '__www__')
-            cgi  = os.path.join(base, '__cgi__')
-            if not os.path.isdir(www):
-                www = None
-            if not os.path.isdir(cgi):
-                cgi = None
-            if www is not None or cgi is not None:
-                module.handler = mapfs.Mapfs(fs_, www=www, cgi=cgi)
     app.routers = routers
-    app.scripts = scripts
     app.modules = modules
     app.servers = named_servers
     app.anonymous = anonymous
     jobs._application = weakref.ref(app)
-    for module in set(list(scripts.values()) + list(modules.values())):
-        if hasattr(module, 'initialize') and callable(module.initialize):
-            jobs.append(gevent.spawn(module.initialize, app))
     for servers in list(named_servers.values()) + [anonymous]:
         for server in servers:
             server.start()
@@ -322,9 +328,9 @@ def spawn(**kwargs):
             sysutil.setuid(opts.user)
         except Exception as err:
             parser.error(f'{err}')
-    for module in scripts.values():
-        if hasattr(module, 'main') and callable(module.main):
-            jobs.append(gevent.spawn(module.main, app))
+    for entrypoint, module in modules.items():
+        if hasattr(module, 'initialize') and callable(module.initialize):
+            jobs.append(gevent.spawn(module.initialize, app))
     return jobs
 
 def exit_func(_app):
@@ -358,8 +364,8 @@ class Handler(object):
         try:
             self.process_request(rw)
         except Exception as err:
-            environ      = rw.environ
-            match        = environ.get('locals.match')
+            environ = rw.environ
+            match   = rw.match
             if match is None:
                 accesslog    = None
                 errorlog     = None
@@ -407,7 +413,7 @@ class Handler(object):
                 )
         else:
             environ = rw.environ
-            match   = environ.get('locals.match')
+            match   = rw.match
             if match is None:
                 accesslog    = None
             else:
@@ -447,7 +453,8 @@ class Handler(object):
         if module is None or not hasattr(module, 'handler'):
             return rw.not_found()
         environ['locals.path_info'] = result.path_info
-        environ['locals.match'    ] = result
+        rw.application = self.application
+        rw.match       = result
         return module.handler(rw)
 
     def _error_msg(self, status, environ, err, tb):
@@ -475,6 +482,24 @@ class Handler(object):
                 str(err),
                 tb
             )
+
+class HTTPRWPair(http.File):
+
+    __slots__ = ['application', 'match']
+
+    @property
+    def accesslog(self):
+        match = self.match
+        if match is None:
+            return None
+        return self.match.path_section.accesslog
+
+    @property
+    def errorlog(self):
+        match = self.match
+        if match is None:
+            return None
+        return self.match.path_section.errorlog
 
 def load_module(entrypoint, verbose=0):
     try:
@@ -529,9 +554,13 @@ class Broken(type(sys)):
             return rw.internal_server_error()
 
 def exc():
-    file = io.StringIO()
+    file = tb_file()
     traceback.print_exc(file=file)
-    return file.getvalue()
+    return ''.join(file)
+
+class tb_file(list):
+
+    write = list.append
 
 def handler(rw):
     rw.send_html_and_close(content=itworks_content)
@@ -840,9 +869,6 @@ def ResourceSection(section):
             raise ValueError('RLIMIT_NOFILE must be greater than zero')
     return data
 
-def ScriptsSection(section):
-    return section.run
-
 def Routers(section):
     return dict((router.name, router) for router in section.data)
 
@@ -1022,8 +1048,8 @@ schema = '''
 <sectiontype name="resource" datatype="slowdown.__main__.ResourceSection">
     <key name="+" attribute="data" required="no" />
 </sectiontype>
-<sectiontype name="scripts">
-    <multikey name="run" datatype="string" required="no" />
+<sectiontype name="modules">
+    <multikey name="load" datatype="string" required="no" />
 </sectiontype>
 
 <sectiontype name="path" datatype="slowdown.__main__.PathSection">
@@ -1075,7 +1101,7 @@ schema = '''
 <key name="verbose" datatype="integer" default="1" required="no" />
 <section type="environment" attribute="environment" required="no" />
 <section type="resource" attribute="resource" required="no" />
-<section type="scripts" attribute="scripts" required="no" />
+<section type="modules" attribute="modules" required="no" />
 <section type="routers" attribute="routers" required="no" />
 <section type="servers" attribute="servers" required="no" />
 '''
@@ -1207,13 +1233,12 @@ config_in = '''\
     #ENV value
 </environment>
 
-# Run scripts at startup
-<scripts>
-    # More scripts
-    #
+# register modules
+<modules>
     # Run a module or package with `main` function:
-    #run SCRIPT
-</scripts>
+    #
+    #load MY.MODULE
+</modules>
 
 # URL Routing based on regular expression.
 <routers>
@@ -1236,9 +1261,8 @@ config_in = '''\
 
                 # It works!
                 #
-                # A handler comes from
-                # the slowdown package.
-                handler   slowdown.__main__
+                # A handler comes from the slowdown package.
+                handler    slowdown.__main__
 
                 # Logs
                 #

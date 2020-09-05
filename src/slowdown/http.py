@@ -124,83 +124,6 @@ max_keep_alive = 300.
 
 __all__ = ['File', 'Handler', 'new_environ']
 
-class Handler(object):
-
-    (   "Handler("
-            "handler:Callable[[File], None], "
-            "verbose:int=0"
-        ")" """
-
-    :param int verbose:
-
-        - **0** quiet
-        - **1** working at the log level `logging.INFO`
-        - **2** working at the log level `logging.DEBUG`
-    """)
-
-    __slots__ = ['handler', 'verbose']
-
-    def __init__(self, handler, verbose=0):
-        self.handler = handler
-        self.verbose = verbose
-
-    def __call__(self, socket, address):
-        (   "__call__("
-                "socket:gevent.socket.socket, "
-                "address:Tuple[str, int]"
-            ") -> None"
-        )
-        reader = socket.makefile(mode='rb')
-        try:
-            while 1:
-                with gevent.Timeout(header_parsing_timeout):
-                    try:
-                        environ = new_environ(reader, server_side=True)
-                    except:
-                        if self.verbose and \
-                           logging.DEBUG >= gvars.levels[self.verbose]:
-                            raise
-                        else:
-                            return
-                environ['REMOTE_ADDR'] = address[0]
-                environ['REMOTE_PORT'] = address[1]
-                rw = File(socket, reader, environ)
-                try:
-                    self.handler(rw)
-                except:
-                    if self.verbose and \
-                       logging.DEBUG >= gvars.levels[self.verbose]:
-                        raise
-                    else:
-                        return
-                if not rw.closed or rw.disconnected:
-                    return
-                if environ.get('HTTP_CONNECTION', '') \
-                          .lower() == 'keep_alive':
-                    keep_alive = environ.get('HTTP_KEEP_ALIVE', '300')
-                else:
-                    keep_alive = environ.get('HTTP_KEEP_ALIVE')
-                if keep_alive is None or \
-                   not regx_keep_alive.match(keep_alive):
-                    return
-                left = rw.left
-                if 8192 > left > 0:
-                    reader.read(left)
-                if left != 0:
-                    return
-                n_keep_alive = min(int(keep_alive), max_keep_alive)
-                try:
-                    gevent.socket.wait_read(socket.fileno(), n_keep_alive)
-                except:
-                    if self.verbose and \
-                       logging.DEBUG >= gvars.levels[self.verbose]:
-                        raise
-                    else:
-                        return
-        finally:
-            reader.close()
-            socket.close()
-
 class File(object):
 
     (   "File("
@@ -854,6 +777,84 @@ class File(object):
             content,
             url_encoding=url_encoding
         )
+
+class Handler(object):
+
+    (   "Handler("
+            "handler:Callable[[File], None], "
+            "verbose:int=0"
+        ")" """
+
+    :param int verbose:
+
+        - **0** quiet
+        - **1** working at the log level `logging.INFO`
+        - **2** working at the log level `logging.DEBUG`
+    """)
+
+    __slots__ = ['file_type', 'handler', 'verbose']
+
+    def __init__(self, handler, verbose=0, file_type=File):
+        self.handler   =   handler
+        self.verbose   =   verbose
+        self.file_type = file_type
+
+    def __call__(self, socket, address):
+        (   "__call__("
+                "socket:gevent.socket.socket, "
+                "address:Tuple[str, int]"
+            ") -> None"
+        )
+        reader = socket.makefile(mode='rb')
+        try:
+            while 1:
+                with gevent.Timeout(header_parsing_timeout):
+                    try:
+                        environ = new_environ(reader, server_side=True)
+                    except:
+                        if self.verbose and \
+                           logging.DEBUG >= gvars.levels[self.verbose]:
+                            raise
+                        else:
+                            return
+                environ['REMOTE_ADDR'] = address[0]
+                environ['REMOTE_PORT'] = address[1]
+                rw = self.file_type(socket, reader, environ)
+                try:
+                    self.handler(rw)
+                except:
+                    if self.verbose and \
+                       logging.DEBUG >= gvars.levels[self.verbose]:
+                        raise
+                    else:
+                        return
+                if not rw.closed or rw.disconnected:
+                    return
+                if environ.get('HTTP_CONNECTION', '') \
+                          .lower() == 'keep_alive':
+                    keep_alive = environ.get('HTTP_KEEP_ALIVE', '300')
+                else:
+                    keep_alive = environ.get('HTTP_KEEP_ALIVE')
+                if keep_alive is None or \
+                   not regx_keep_alive.match(keep_alive):
+                    return
+                left = rw.left
+                if 8192 > left > 0:
+                    reader.read(left)
+                if left != 0:
+                    return
+                n_keep_alive = min(int(keep_alive), max_keep_alive)
+                try:
+                    gevent.socket.wait_read(socket.fileno(), n_keep_alive)
+                except:
+                    if self.verbose and \
+                       logging.DEBUG >= gvars.levels[self.verbose]:
+                        raise
+                    else:
+                        return
+        finally:
+            reader.close()
+            socket.close()
 
 def new_environ(reader, server_side=True):
     (   "new_environ("
