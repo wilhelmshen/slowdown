@@ -16,22 +16,22 @@ installed with the following command.
 
 .. code-block:: console
 
-   $ pip install -U slowdown
+    $ pip install -U slowdown
 
 You can also install Slowdown directly from a clone of the
 `Git repository`__ .
 
 .. code-block:: console
 
-   $ git clone https://github.com/wilhelmshen/slowdown
-   $ cd slowdown
-   $ pip install .
+    $ git clone https://github.com/wilhelmshen/slowdown
+    $ cd slowdown
+    $ pip install .
 
 or
 
 .. code-block:: console
 
-   $ pip install git+https://github.com/wilhelmshen/slowdown
+    $ pip install git+https://github.com/wilhelmshen/slowdown
 
 __ https://pypi.org/project/slowdown/
 __ https://github.com/wilhelmshen/slowdown
@@ -69,7 +69,7 @@ will be used.
     Creating myproj/etc ... done
     Creating myproj/var ... done
     Creating myproj/pkgs ... done
-    Creating myproj/var/log ... done
+    Creating myproj/logs ... done
     Creating myproj/bin/slowdown ... done
     Creating myproj/etc/slowdown.conf ... done
     DONE! Completed all initialization steps.
@@ -85,6 +85,7 @@ After all initialization steps are completed, the server folder called `myproj` 
             slowdown.conf
         lib/
         var/
+        logs/
         pkgs/
 
 .. object:: bin/slowdown
@@ -103,7 +104,7 @@ Now you can start the web server by the following command:
 
 .. code-block:: console
 
-    $ myproj/bin/slowdown -vv
+    $ myproj/bin/slowdown
     Serving HTTP on 0.0.0.0 port 8080 ...
 
 .. _virtualenv: https://virtualenv.pypa.io/

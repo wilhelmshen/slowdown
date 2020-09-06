@@ -33,7 +33,7 @@ scripts in the `__cgi__` folder will be executed when requested.
 
 The static file will be sent if the file and script are matched by the same
 URL. If no files or scripts are matched, the existing `index.html` file or
-`index_html.py` script will be the choice.
+`index.html.py` script will be the choice.
 
 Swap files and hidden files whose names start with dot, end with tilde
 ( ``~`` ), and have .swp, .swx suffixes are ignored.
@@ -90,6 +90,72 @@ script samples:
                 )
         else:
             return rw.method_not_allowed()
+
+
+Script initialization
+^^^^^^^^^^^^^^^^^^^^^
+
+The script can be loaded by multiple :py:class:`slowdown.mapfs.Mapfs`
+handlers, and `initialize(mapfs)` will be called several times
+independently.
+
+.. code-block:: python
+
+    # The first time the script is loaded, the "initialize(mapfs)" function
+    # of the script is executed.
+    def initialize(mapfs_):
+        global application
+        global mapfs
+        application = mapfs_.application
+        mapfs       = mapfs_
+
+    def GET(rw):
+        # Call `__cgi__/a.html.py`
+        return mapfs.load_script('a.html').GET(rw)
+
+
+Calling another cgi script
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :py:attr:`~slowdown.__main__.Application.modules` holds the module
+specified in the `<modules>` section of the configuration. And you can get
+the script module under the `__cgi__` folder through
+:py:meth:`~slowdown.mapfs.Mapfs.load_script` .
+
+.. code-block:: python
+
+    def GET(rw):
+        # Call `MY/PACKAGE/__cgi__/a.html.py:GET`
+        rw.application.modules['MY.PACKAGE'].load_script('a.html').GET(rw)
+
+
+Access the matching configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you want to know which configuration match this request, you can access
+the :py:attr:`~slowdown.__main__.HTTPRWPair.match` object.
+
+.. code-block:: python
+
+    def GET(rw):
+        match = rw.match
+        host_section = match.host_section  # HostSection object
+        host_section.section  # Original ZConfig section object
+        path_section = match.path_section  # PathSection object
+        path_section.section  # Original ZConfig section object
+
+
+Error log
+^^^^^^^^^
+
+.. code-block:: python
+
+    def GET(rw):
+        rw.errorlog.debug(msg)
+        rw.errorlog.info(msg)
+        rw.errorlog.warning(msg)
+        rw.errorlog.error(msg)
+        rw.errorlog.critical(msg)
 
 
 The http.File object

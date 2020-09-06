@@ -1201,7 +1201,8 @@ config_in = '''\
 %define VAR  {var_dir}
 %define LOGS {logs_dir}
 
-# Effective User, the default is the current user.
+# Effective User
+# The default is the current user.
 #
 #user nobody
 
@@ -1223,7 +1224,12 @@ config_in = '''\
 </resource>
 
 <environment>
-    # By default, DummyThreadPool is used, which is a threadpool that
+    # By default, FileObjectThread is used.
+    #
+    #GEVENT_FILE thread
+
+    # If single-threaded mode is required, set GEVENT_THREADPOOL to
+    # "slowdown.threadpool.DummyThreadPool", which is a threadpool that
     # does not actually use threads and blocks the entrie program.
     #
     #GEVENT_THREADPOOL slowdown.threadpool.DummyThreadPool
@@ -1233,9 +1239,11 @@ config_in = '''\
     #ENV value
 </environment>
 
-# register modules
+# Register modules
 <modules>
-    # Run a module or package with `main` function:
+    # Load a module or package and run it's "initialize(app)" function.
+    # "finalize(app)" function is executed when the server shuts down.
+    # Loaded modules can be accessed through "app.modules[MY.MODULE]" .
     #
     #load MY.MODULE
 </modules>
@@ -1270,6 +1278,20 @@ config_in = '''\
                 #errorlog  $LOGS/error.log
 
             </path>
+
+            # A reqular expression to match PATH_INFO and set
+            # rw.environ['locals.path_info'] to the named group.
+            # Group name must be uppercased.
+            #
+            #pattern ^/mysite(?P<MYSITE>/.*)$$
+            #
+            #<path MYSITE>
+            #    # The package called 'mysite' placed in
+            #    # the 'pkgs/' dir is set to handle
+            #    # incoming requests.
+            #    #
+            #    handler mysite
+            #</path>
         </host>
 
         # More hosts ..

@@ -40,19 +40,19 @@ argument.
 
 
 Server startup scripts
------------------------------
+----------------------
 
 .. code-block:: apacheconf
 
-    <scripts>
-        run PACKAGE
-        run MODULE
-        run ..
-    </scripts>
+    <modules>
+        load MY.PACKAGE
+        load MY.MODULE
+        load ..
+    </modules>
 
-When the server starts, it executes scripts registered in the `scripts`
+When the server starts, it executes scripts registered in the `<modules>`
 section of the config file. Those scripts could be a module or package
-and have a function with the name `main`.
+and have a function with the name `initialize`.
 
 Example:
 
@@ -71,3 +71,8 @@ Example:
 
 The main function accepts an :py:class:`~slowdown.__main__.Application`
 object as an argument.
+
+In fact, modules registered with `<path>handler MODULE</path>` have
+the same import machanism as modules registered with `<modules>` section
+and are stored in :py:attr:`~slowdown.__main__.Application.modules` of
+:py:class:`~slowdown.__main__.Application` object.

@@ -30,38 +30,51 @@ sections and options.
     #
     #user nobody
 
-    # Process Name
-    #
-    #proc slowdown
-
     # Log Level
     #
     # Set log level to logging.DEBUG:
     #verbose 2
-    # Set log level to logging.INFO
+    #
+    # Set log level to logging.INFO (default):
     #verbose 1
-    # Quiet mode (default):
-    verbose 0
+    #
+    # Quiet mode:
+    #verbose 0
 
     <resource>
-
         # Limits for open files
         #
         RLIMIT_NOFILE 65535
-
     </resource>
 
     <environment>
-
         # By default, FileObjectThread is used.
         #
         #GEVENT_FILE thread
 
+        # If single-threaded mode is required, set GEVENT_THREADPOOL to
+        # "slowdown.threadpool.DummyThreadPool", which is a threadpool that
+        # does not actually use threads and blocks the entrie program.
+        #
+        #GEVENT_THREADPOOL slowdown.threadpool.DummyThreadPool
+
         # Other runtime environment
         #
         #ENV value
-
     </environment>
+
+    # Register modules
+    <modules>
+        # Load a module or package and run it's "initialize(app)" function.
+        # "finalize(app)" function is executed when the server shuts down.
+        # Loaded modules can be accessed through "app.modules[MY.MODULE]" .
+        #
+        load MY.MODULE
+
+        # More modules
+        #
+        #load ..
+    </modules>
 
     # URL Routing based on regular expression.
     <routers>
@@ -99,8 +112,7 @@ sections and options.
                 <path ITWORKS>
                     # It works!
                     #
-                    # A handler comes from
-                    # the slowdown package.
+                    # A handler comes from the slowdown package.
                     #
                     handler   slowdown.__main__
                     accesslog $LOGS/access.log
@@ -150,17 +162,6 @@ sections and options.
         #<https>...</https>
 
     </servers>
-
-    # Run scripts at startup
-    <scripts>
-        # Run a module or package with `main` function
-        #
-        run script
-
-        # More scripts
-        #
-        #run ..
-    </scripts>
 
 .. note::
 

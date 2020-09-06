@@ -96,7 +96,7 @@ So, you can create a python package as a container for site resources.
     $ mkdir myproj/pkgs/mysite/__www__
     $ mkdir myproj/pkgs/mysite/__cgi__
 
-And add a script named `index_html.py` to the `__cgi__` folder.
+And add a script named `index.html.py` to the `__cgi__` folder.
 
 .. code-block:: python
 

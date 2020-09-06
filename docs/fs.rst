@@ -38,9 +38,11 @@ yourself.
 
 .. code-block:: python
 
-    def startup(application):
+    # The first time the script is loaded, the "initialize(mapfs)" of the
+    # script is executed.
+    def initialize(mapfs):
         global fs
-        fs = application.fs
+        fs = mapfs.application.fs
 
     def GET(rw):
         with fs.open('test.html', 'rb') as file:

@@ -29,6 +29,8 @@ Defining a Router
 
                 <path GROUP_NAME>
                     handler entrypoint
+                    #accesslog /PATH/TO/access.log
+                    #errorlog  /PATH/TO/error.log
                 </path>
             </host>
 
