@@ -158,12 +158,12 @@ Error log
         rw.errorlog.critical(msg)
 
 
-The http.File object
+The HTTPRWPair object
 --------------------
 
-The script accepts :py:class:`slowdown.http.File` object as the only
-argument. In general, the :py:class:`slowdown.http.File` object is
-sometimes called **rw** which means the 'Read-Write Pair'.
+The script accepts :py:class:`~slowdown.__main__.HTTPRWPair` object as the
+only argument. In general, the :py:class:`~slowdown.__main__.HTTPRWPair`
+object is sometimes called **rw** for short.
 
 
 HTTP Headers
@@ -231,8 +231,8 @@ __ https://tools.ietf.org/html/rfc3875
 Reading from the POST content
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- :py:meth:`slowdown.http.File.read`
-- :py:meth:`slowdown.http.File.readline`
+- :py:meth:`slowdown.__main__.HTTPRWPair.read`
+- :py:meth:`slowdown.__main__.HTTPRWPair.readline`
 
 Example:
 
@@ -255,10 +255,10 @@ Example:
 Streaming responses
 ^^^^^^^^^^^^^^^^^^^
 
-- :py:meth:`slowdown.http.File.start_response`
-- :py:meth:`slowdown.http.File.start_chunked`
-- :py:meth:`slowdown.http.File.write`
-- :py:meth:`slowdown.http.File.close`
+- :py:meth:`slowdown.__main__.HTTPRWPair.start_response`
+- :py:meth:`slowdown.__main__.HTTPRWPair.start_chunked`
+- :py:meth:`slowdown.__main__.HTTPRWPair.write`
+- :py:meth:`slowdown.__main__.HTTPRWPair.close`
 
 Example:
 
@@ -278,21 +278,21 @@ Example:
 Quick response utils
 ^^^^^^^^^^^^^^^^^^^^
 
-- :py:meth:`slowdown.http.File.send_response_and_close`
-- :py:meth:`slowdown.http.File.send_html_and_close`
-- :py:meth:`slowdown.http.File.not_modified`
-- :py:meth:`slowdown.http.File.bad_request`
-- :py:meth:`slowdown.http.File.forbidden`
-- :py:meth:`slowdown.http.File.not_found`
-- :py:meth:`slowdown.http.File.method_not_allowed`
-- :py:meth:`slowdown.http.File.request_entity_too_large`
-- :py:meth:`slowdown.http.File.request_uri_too_large`
-- :py:meth:`slowdown.http.File.internal_server_error`
-- :py:meth:`slowdown.http.File.multiple_choices`
-- :py:meth:`slowdown.http.File.moved_permanently`
-- :py:meth:`slowdown.http.File.found`
-- :py:meth:`slowdown.http.File.see_other`
-- :py:meth:`slowdown.http.File.temporary_redirect`
+- :py:meth:`slowdown.__main__.HTTPRWPair.send_response_and_close`
+- :py:meth:`slowdown.__main__.HTTPRWPair.send_html_and_close`
+- :py:meth:`slowdown.__main__.HTTPRWPair.not_modified`
+- :py:meth:`slowdown.__main__.HTTPRWPair.bad_request`
+- :py:meth:`slowdown.__main__.HTTPRWPair.forbidden`
+- :py:meth:`slowdown.__main__.HTTPRWPair.not_found`
+- :py:meth:`slowdown.__main__.HTTPRWPair.method_not_allowed`
+- :py:meth:`slowdown.__main__.HTTPRWPair.request_entity_too_large`
+- :py:meth:`slowdown.__main__.HTTPRWPair.request_uri_too_large`
+- :py:meth:`slowdown.__main__.HTTPRWPair.internal_server_error`
+- :py:meth:`slowdown.__main__.HTTPRWPair.multiple_choices`
+- :py:meth:`slowdown.__main__.HTTPRWPair.moved_permanently`
+- :py:meth:`slowdown.__main__.HTTPRWPair.found`
+- :py:meth:`slowdown.__main__.HTTPRWPair.see_other`
+- :py:meth:`slowdown.__main__.HTTPRWPair.temporary_redirect`
 
 Example:
 
@@ -306,7 +306,7 @@ Cookies
 ^^^^^^^
 
 Cookies can be readed by accessing the attribute
-:py:attr:`slowdown.http.File.cookie` .
+:py:attr:`slowdown.__main__.HTTPRWPair.cookie` .
 
 .. code-block:: python
 
@@ -341,7 +341,7 @@ Form
 
     >>> form = \
     ...     slowdown.cgi.Form(
-    ...         rw,             # the incoming `slowdown.http.File` object.
+    ...         rw,             # the incoming `HTTPRWPair` object.
     ...
     ...         max_size=10240  # the length of the http content containing
     ...                         # the CGI form data should be less than
@@ -370,7 +370,7 @@ Upload files
         # no parts are unprocessed.
         for part in \
             slowdown.cgi.multipart(
-                rw,  # the incoming `slowdown.http.File` object
+                rw,  # the incoming `slowdown.__main__.HTTPRWPair` object
 
                 # Uploaded files always store their binary filenames in
                 # multi-parts heads. Those filenames require an encoding
