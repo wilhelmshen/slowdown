@@ -183,6 +183,89 @@ class Logger(object):
         if self.immediately:
             self.file.flush()
 
+class RotatingFile(object):
+
+    __slots__ = ['closed',
+                 'curr',
+                 'encoding',
+                 'file',
+                 'fmt',
+                 'fs',
+                 'maxsize',
+                 '__weakref__']
+
+    def __init__(self, fs, fmt, maxsize=-1, encoding='utf-8'):
+        if -1 == maxsize:
+            self.maxsize = default_file_queue_maxsize
+        else:
+            self.maxsize = maxsize
+        self.closed   = False
+        self.curr     = None
+        self.encoding = encoding
+        self.file     = None
+        self.fmt      = fmt
+        self.fs       = fs
+
+    def __del__(self):
+        if not self.closed:
+            self.close()
+
+    def write(self, data):
+        if self.closed:
+            raise ValueError('I/O operation on closed file.')
+        path = time.strftime(self.fmt)
+        if self.curr == path:
+            self.file.write(data)
+        else:
+            file      = self.file
+            self.curr = time.strftime(self.fmt)
+            self.file = \
+                File(
+                    self.fs,
+                    self.curr,
+                    self.maxsize,
+                    self.encoding
+                )
+            self.file.write(data)
+            if file is not None:
+                file.close()
+                file.syncer.join()
+
+    def flush(self):
+        if self.closed:
+            raise ValueError('I/O operation on closed file.')
+        path = time.strftime(self.fmt)
+        if self.curr == path:
+            self.file.flush()
+        else:
+            file      = self.file
+            self.curr = time.strftime(self.fmt)
+            self.file = \
+                File(
+                    self.fs,
+                    self.curr,
+                    self.maxsize,
+                    self.encoding
+                )
+            self.file.flush()
+            if file is not None:
+                file.close()
+                file.syncer.join()
+
+    def close(self):
+        if not self.closed:
+            self.closed = True
+            file = self.file
+            self.curr = None
+            self.file = None
+            if file is not None:
+                try:
+                    file.close()
+                    file.syncer.join()
+                except:
+                    self.closed = False
+                    raise
+
 class File(object):
 
     (   "File("
@@ -196,6 +279,7 @@ class File(object):
                  'file',
                  'filename',
                  'queue',
+                 'syncer',
                  '__weakref__']
 
     def __init__(self, fs, filename, maxsize=-1, encoding='utf-8'):
@@ -206,14 +290,11 @@ class File(object):
         self.encoding = encoding
         self.filename = filename
         self.closed = False
+        self.syncer = gevent.spawn(syncer, weakref.ref(self))
 
     def __del__(self):
         if not self.closed:
             self.close()
-
-    def spawn(self):
-        _logfile = weakref.ref(self)
-        return [gevent.spawn(syncer, _logfile)]
 
     def write(self, data):
         if self.closed:
@@ -233,6 +314,7 @@ class File(object):
             self.file.close()
             self.closed = True
             self.queue.put(None)
+            self.syncer.join()
 
 def syncer(_logfile):
     its_time_to_flush = False

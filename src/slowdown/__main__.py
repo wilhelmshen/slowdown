@@ -115,7 +115,7 @@ def main(**kwargs):
     except gevent.exceptions.BlockingSwitchOutError:
         pass
 
-class Application(dict):
+class Application(object):
 
     """
     A runtime object created by the __main__.main function that contains
@@ -128,9 +128,10 @@ class Application(dict):
                  'cfg',
                  'fs',
                  'jobs',
+                 'logfiles',
+                 'modules',
                  'opts',
                  'routers',
-                 'modules',
                  'servers',
                  'verbose',
                  '__weakref__']
@@ -149,6 +150,11 @@ class Application(dict):
         for servers in list(self.servers.values()) + [self.anonymous]:
             for server in servers:
                 server.stop()
+        for filename, file in self.logfiles.items():
+            try:
+                file.close()
+            except gevent.exceptions.BlockingSwitchOutError:
+                pass
         if getattr(self, 'jobs', None):
             try:
                 gevent.killall(self.jobs)
@@ -178,11 +184,12 @@ def spawn(**kwargs):
         gvars.logger.level = gvars.levels[opts.verbose]
     else:
         gvars.logger.level = logging.DISABLED
-    os.environ.update(
-        (key.upper(), value) for key, value in
-        list(default_environment.items()) +
-        list(cfg.environment.items())
-    )
+    if cfg.environment:
+        os.environ.update(
+            (key.upper(), value) for key, value in
+            list(default_environment.items()) +
+            list(cfg.environment.items())
+        )
     if cfg.resource is not None:
         if 'RLIMIT_NOFILE' in cfg.resource:
             try:
@@ -215,21 +222,30 @@ def spawn(**kwargs):
     modules = {}
     named_servers = {}
     anonymous = []
+    logfiles = weakref.WeakValueDictionary()
     verbose = opts.verbose
-    for entrypoint in cfg.modules.load:
-        if entrypoint not in modules:
-            modules[entrypoint] = load_module(entrypoint, verbose)
-    for router_name, router in cfg.routers.items():
+    if cfg.modules:
+        for entrypoint in cfg.modules.load:
+            if entrypoint not in modules:
+                modules[entrypoint] = load_module(entrypoint, verbose)
+    for router_name, router in cfg.routers.items() if cfg.routers else []:
         for host_name, host_section in router.groups.items():
             for path_name, path_section in host_section.groups.items():
                 if path_section.handler not in modules:
                     entrypoint = path_section.handler
                     module = load_module(entrypoint, verbose)
                     if not hasattr(module, 'handler'):
-                        base = \
-                            os.path.abspath(
-                                os.path.dirname(module.__file__)
-                            )
+                        if module.__file__:
+                            base = \
+                                os.path.abspath(
+                                    os.path.dirname(module.__file__)
+                                )
+                        else:
+                            base = \
+                                os.path.join(
+                                    pkgs_dir,
+                                    entrypoint.replace('.', os.path.sep)
+                                )
                         www  = os.path.join(base, '__www__')
                         cgi  = os.path.join(base, '__cgi__')
                         if not os.path.isdir(www):
@@ -248,9 +264,8 @@ def spawn(**kwargs):
                     filename = path_section.section.accesslog
                     file = logfiles.get(filename)
                     if file is None:
-                        file = logging.File(fs_, filename)
+                        file = logging.RotatingFile(fs_, filename)
                         logfiles[filename] = file
-                        jobs.extend(file.spawn())
                     path_section.accesslog = \
                         logging.Logger(
                                    file,
@@ -262,9 +277,8 @@ def spawn(**kwargs):
                     filename = path_section.section.errorlog
                     file = logfiles.get(filename)
                     if file is None:
-                        file = logging.File(fs_, filename)
+                        file = logging.RotatingFile(fs_, filename)
                         logfiles[filename] = file
-                        jobs.extend(file.spawn())
                     path_section.errorlog = logging.Logger(file)
                 else:
                     path_section.errorlog = None
@@ -274,7 +288,7 @@ def spawn(**kwargs):
                   verbose=verbose,
                 file_type=HTTPRWPair
             )
-    for section in cfg.servers.data:
+    for section in (cfg.servers.data if cfg.servers else []):
         servers = []
         if 'HTTP' == section.type_:
             for address in section.addresses:
@@ -309,7 +323,9 @@ def spawn(**kwargs):
     app.modules = modules
     app.servers = named_servers
     app.anonymous = anonymous
+    app.logfiles  = logfiles
     jobs._application = weakref.ref(app)
+    gvars.logger.info(f'{__package__}/{__version__}')
     for servers in list(named_servers.values()) + [anonymous]:
         for server in servers:
             server.start()
@@ -317,7 +333,8 @@ def spawn(**kwargs):
                 scheme = 'HTTPS'
             else:
                 scheme = 'HTTP'
-            gvars.logger.info(f'Serving {scheme} on {server.server_host} '
+            gvars.logger.info(f'Serving {scheme.upper()} '
+                                f'on {server.server_host} '
                               f'port {server.server_port} ...')
     exit = exit_func(weakref.ref(app))
     gevent.signal.signal(gevent.signal.SIGQUIT, exit)
@@ -408,7 +425,8 @@ class Handler(object):
                         environ['REQUEST_METHOD'],
                         environ['PATH_INFO'],
                         environ['REMOTE_ADDR'],
-                        environ['HTTP_USER_AGENT']
+                        environenviron.get('HTTP_USER_AGENT',
+                                           'Unknown User-Agent')
                     )
                 )
         else:
@@ -432,7 +450,7 @@ class Handler(object):
                     environ['REQUEST_METHOD'],
                     environ['PATH_INFO'],
                     environ['REMOTE_ADDR'],
-                    environ['HTTP_USER_AGENT']
+                    environ.get('HTTP_USER_AGENT', 'Unknown User-Agent')
                 )
             if accesslog is not None:
                 accesslog.access(msg)
@@ -464,7 +482,7 @@ class Handler(object):
                 environ['REQUEST_METHOD'],
                 environ['PATH_INFO'],
                 environ['REMOTE_ADDR'],
-                environ['HTTP_USER_AGENT'],
+                environ.get('HTTP_USER_AGENT', 'Unknown User-Agent'),
                 err.__class__.__name__,
                 str(err),
                 tb
@@ -477,7 +495,7 @@ class Handler(object):
                 environ['REQUEST_METHOD'],
                 environ['PATH_INFO'],
                 environ['REMOTE_ADDR'],
-                environ['HTTP_USER_AGENT'],
+                environ.get('HTTP_USER_AGENT', 'Unknown User-Agent'),
                 err.__class__.__name__,
                 str(err),
                 tb
@@ -565,7 +583,6 @@ class tb_file(list):
 def handler(rw):
     rw.send_html_and_close(content=itworks_content)
 
-logfiles = weakref.WeakValueDictionary()
 ignored_exceptions = (BrokenPipeError, gevent.Timeout)
 default_environment = {'GEVENT_FILE': 'thread'}
 http_content_encoding = 'utf-8'
@@ -584,15 +601,16 @@ nable to complete your request.</p><p>{{}}</p><hr /><address>Python-{}.{}.\
 ###########################################################################
 
 def parse(**kwargs):
-    config = kwargs.get('config')
+    arguments = kwargs.get('arguments')
+    config    = kwargs.get('config')
     if config is None:
         defaults = copy.copy(kwargs)
         defaults['add_help'] = False
         parser = ParserFactory(**defaults)
-        args = parser.parse_args()
+        args = parser.parse_args(arguments)
         defaults['home'] = args.home
         parser = ParserFactory(**defaults)
-        args = parser.parse_args()
+        args = parser.parse_args(arguments)
         if args.init:
             if args.show_help_message:
                 parser.error('argument --init: not allowed with '
@@ -632,7 +650,7 @@ def parse(**kwargs):
         defaults['root'] = cfg.root
     defaults['verbose'] = cfg.verbose
     parser = ParserFactory(**defaults)
-    args = parser.parse_args()
+    args = parser.parse_args(arguments)
     opts = Options()
     if config is None:
         opts.file = args.file
@@ -649,15 +667,15 @@ def parse(**kwargs):
         opts.root = args.root
     if   args.quiet:
         opts.verbose = 0
-    elif args.verbose is not None:
+    elif args.verbose is None:
+        opts.verbose = defaults['verbose']
+    else:
         assert isinstance(args.verbose, int)
         max_verbose = len(gvars.levels) - 1
         if args.verbose >= max_verbose:
             opts.verbose = max_verbose
         else:
             opts.verbose = args.verbose
-    else:
-        opts.verbose = defaults['verbose']
     return ParseResult(opts, args, cfg, parser)
 
 def ParserFactory(**kwargs):
@@ -752,7 +770,7 @@ def ParserFactory(**kwargs):
                dest='root',
                type=str,
             metavar='DIRECTORY',
-               help=f'working dir, the default is {default_root}',
+               help=f'working dir, the default is $HOME/var',
             default=None
         )
     else:
@@ -762,7 +780,7 @@ def ParserFactory(**kwargs):
                type=str,
             metavar='DIRECTORY',
                help=f'working dir, the default is {kwargs["root"]}',
-            default=None
+            default=kwargs['root']
         )
     parser.add_argument(
                 '--init',

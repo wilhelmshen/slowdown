@@ -159,7 +159,7 @@ Error log
 
 
 The HTTPRWPair object
---------------------
+---------------------
 
 The script accepts :py:class:`~slowdown.__main__.HTTPRWPair` object as the
 only argument. In general, the :py:class:`~slowdown.__main__.HTTPRWPair`

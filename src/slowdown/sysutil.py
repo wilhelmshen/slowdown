@@ -8,7 +8,6 @@
 
 import ctypes
 import ctypes.util
-import grp
 import os
 import os.path
 import platform
@@ -67,6 +66,9 @@ def getuid(user):
         return pwrec[2]
 
 def getgid(group):
+
+    import grp
+
     if isinstance(group, int):
         try:
             grrec = grp.getgrgid(group)

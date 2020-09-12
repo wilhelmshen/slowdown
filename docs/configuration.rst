@@ -18,12 +18,12 @@ sections and options.
 
     # Predefined directories
     #
-    %define HOME /PATH/TO/HOME
-    %define BIN  $HOME/bin
-    %define ETC  $HOME/etc
-    %define PKGS $HOME/pkgs
-    %define VAR  $HOME/var
-    %define LOGS $HOME/logs
+    #%define HOME /PATH/TO/HOME
+    #%define BIN  $HOME/bin
+    #%define ETC  $HOME/etc
+    #%define PKGS $HOME/pkgs
+    #%define VAR  $HOME/var
+    #%define LOGS $HOME/logs
 
     # Effective User
     # The default is the current user.

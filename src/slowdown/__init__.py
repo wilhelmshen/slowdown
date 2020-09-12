@@ -4,4 +4,4 @@
 slowdown is a coroutine-based Python web framework based on gevent.
 """
 
-__version__ = '0.0.1.dev0'
+__version__ = '0.0.1.dev1'
