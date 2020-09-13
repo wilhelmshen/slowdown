@@ -115,8 +115,8 @@ sections and options.
                     # A handler comes from the slowdown package.
                     #
                     handler   slowdown.__main__
-                    accesslog $LOGS/access.log
-                    errorlog  $LOGS/error.log
+                    accesslog $LOGS/access-%Y%m.log
+                    errorlog  $LOGS/error-%Y%m.log
                 </path>
             </host>
 

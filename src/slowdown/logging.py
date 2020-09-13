@@ -4,6 +4,20 @@
 =========================================================
 :mod:`slowdown.logging` -- Cooperative and simple logging
 =========================================================
+
+This module providers a logging implementation for high concurrent
+services. Instead of performing file operations immediately, this module
+performs writes in the background when the buffer is full.
+
+Example:
+
+    >>> file = RotatingFile(application.fs, '$LOGS/error-%Y%m.log')
+    >>> logger = Logger(file, level=DEBUG)
+    >>> logger.debug('debug msg')
+    >>> logger.info('info msg')
+    >>> logger.level = ERROR
+    >>> logger.error('error msg')
+    >>> logger.critical('fatal msg')
 """
 
 import gevent
@@ -17,7 +31,7 @@ from logging import CRITICAL, DEBUG, ERROR, FATAL, INFO, NOTSET, WARNING
 
 default_file_queue_maxsize = 2048
 
-__all__ = ['File', 'Logger']
+__all__ = ['File', 'Logger', 'RotatingFile']
 
 DISABLED  = 0xffff
 assert DISABLED > CRITICAL
@@ -184,6 +198,16 @@ class Logger(object):
             self.file.flush()
 
 class RotatingFile(object):
+
+    (   "RotatingFile("
+            "fs:slowdown.fs.FS, "
+            "fmt:str, "
+            "maxsize:int=-1, "
+            "encoding:str='utf-8'"
+        ")" """
+
+    The name of the log file is obtained via time.strftime( :param:`fmt` )
+    """)
 
     __slots__ = ['closed',
                  'curr',

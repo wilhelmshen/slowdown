@@ -782,7 +782,8 @@ class Handler(object):
 
     (   "Handler("
             "handler:Callable[[File], None], "
-            "verbose:int=0"
+            "verbose:int=0, "
+            "file_type=File"
         ")" """
 
     :param int verbose:

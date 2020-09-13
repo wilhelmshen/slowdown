@@ -51,8 +51,8 @@ Examples:
                         pattern ^(?P<MYPATH>/.*)$$
                         <path MYPATH>
                             handler   MY.PACKAGE
-                            accesslog /PATH/TO/access.log
-                            errorlog  /PATH/TO/error.log
+                            accesslog /PATH/TO/access-%Y%m.log
+                            errorlog  /PATH/TO/error-%Y%m.log
                         </path>
                     </host>
                 </router>
@@ -312,9 +312,9 @@ def spawn(**kwargs):
                         ssl_context=ssl_context
                     )
                 )
-            else:
-                raise NotImplementedError(f'scheme "{section.type_}" '
-                                          'not supported')
+        else:
+            raise NotImplementedError(f'scheme "{section.type_}" '
+                                      'not supported')
         if section.name is None:
             anonymous.extend(servers)
         else:

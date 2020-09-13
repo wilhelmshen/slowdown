@@ -18,7 +18,7 @@ setuptools.setup(
                       'framework async asynchronous http server'),
               author='Wilhelm Shen',
         author_email='wilhelmshen@pyforce.com',
-                 url='http://slowdown.pyforce.com.cn',
+                 url='http://slowdown.pyforce.com',
          package_dir={'': 'src'},
             packages=['slowdown'],
     install_requires=
