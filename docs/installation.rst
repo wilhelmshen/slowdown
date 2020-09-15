@@ -1,6 +1,6 @@
-==============
-Initialization
-==============
+============
+Installation
+============
 
 .. contents::
     :depth: 1

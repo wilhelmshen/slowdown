@@ -1292,8 +1292,8 @@ config_in = '''\
 
                 # Logs
                 #
-                #accesslog $LOGS/access.log
-                #errorlog  $LOGS/error.log
+                #accesslog $LOGS/access-%Y%m.log
+                #errorlog  $LOGS/error-%Y%m.log
 
             </path>
 

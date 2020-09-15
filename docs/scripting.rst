@@ -161,9 +161,10 @@ Error log
 The HTTPRWPair object
 ---------------------
 
-The script accepts :py:class:`~slowdown.__main__.HTTPRWPair` object as the
-only argument. In general, the :py:class:`~slowdown.__main__.HTTPRWPair`
-object is sometimes called **rw** for short.
+The script accepts :py:class:`~slowdown.__main__.HTTPRWPair` object
+(inherited from :py:class:`slowdown.http.File` ) as the only argument.
+In general, the :py:class:`~slowdown.__main__.HTTPRWPair` object is
+sometimes called **rw** for short.
 
 
 HTTP Headers

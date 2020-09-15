@@ -1,13 +1,15 @@
 .. _contents:
 
-Slowdown documentation contents
-===============================
+Slowdown
+========
+
+A coroutine-based Python web framework based on gevent.
 
 .. toctree::
     :maxdepth: 2
 
     quickstart
-    initialization
+    installation
     cli
     configuration
     routing

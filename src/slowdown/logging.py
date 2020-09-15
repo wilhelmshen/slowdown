@@ -206,7 +206,7 @@ class RotatingFile(object):
             "encoding:str='utf-8'"
         ")" """
 
-    The name of the log file is obtained via time.strftime( :param:`fmt` )
+    The name of the log file is obtained via time.strftime(`fmt`)
     """)
 
     __slots__ = ['closed',
