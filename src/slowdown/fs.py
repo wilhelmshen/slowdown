@@ -5,8 +5,8 @@
 :mod:`slowdown.fs` -- Cooperative file system interface
 =======================================================
 
-This module provides cooperative versions of the `os` and `os.path`
-module, base on the `gevent.threadpool.ThreadPool` .
+This module provides cooperative versions of the **os** and **os.path**
+module, base on the **gevent.threadpool.ThreadPool** .
 """
 
 import gevent
@@ -33,10 +33,10 @@ class FS(object):
 
     def __init__(self):
         self.inotify  = inotify.Inotify()
-        self.io       = IO()  #: The cooperative version of `io` module.
-        self.os       = OS()  #: The cooperative version of `os` module.
+        self.io       = IO()  #: The cooperative version of **io** module.
+        self.os       = OS()  #: The cooperative version of **os** module.
 
-        #: The cooperative version of built-in `open` function.
+        #: The cooperative version of built-in **open** function.
         self.open     = self.io.open
 
     def spawn(self):
@@ -99,7 +99,9 @@ class OS(object):
     def __init__(self):
         for name in os_all:
             setattr(self, name, globals()['os_'+name])
-        self.path = Path()  #: The cooperative version of `os.path` module.
+
+        #: The cooperative version of **os.path** module.
+        self.path = Path()
 
 path_all = [name for name in path_all if hasattr(os.path, name)]
 for name in path_all:
@@ -115,7 +117,7 @@ path_{name}.__doc__ = original_path_{name}.__doc__'''.format(name=name))
 class Path(object):
 
     """
-    The cooperative version of `os.path` module.
+    The cooperative version of **os.path** module.
     """
 
     __slots__ = path_all

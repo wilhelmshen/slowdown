@@ -1,0 +1,92 @@
+{# Import the theme's layout. #}
+{% extends "!layout.html" %}
+
+{# Add some extra stuff before and use existing with 'super()' call. #}
+
+{%- block content %}
+{{ navBar() }}
+<div class="container">
+  <div class="row">
+    {%- block sidebar1 %}{{ bsidebar() }}{% endblock %}
+    <div class="body {{ bs_span_prefix }}{{ bs_content_width }} content" role="main" style="min-width: 200px;">
+      {% block body %}{% endblock %}
+    </div>
+    {% block sidebar2 %} {# possible location for sidebar #} {% endblock %}
+  </div>
+</div>
+{%- endblock %}
+
+{% block footer %}
+
+{# Switch to icon instead of text in `sm` view size for BS3 only. #}
+
+<footer class="footer" style="border: 0;">
+  <div class="container">
+    <p>
+      {%- if prev %}
+      <a href="{{ prev.link|e }}" title="{{ _('Previous Chapter: ') + prev.title|striptags }}" class="pull-left">
+        {%- if theme_bootstrap_version == "2" -%}
+        <span class="icon-chevron-left visible-tablet"></span>
+        {%- endif -%}
+        {%- if theme_bootstrap_version == "3" -%}
+        <span class="glyphicon glyphicon-chevron-left visible-sm"></span>
+        {%- endif -%}
+        <span class="hidden-sm hidden-tablet">
+        {{ "&laquo;"|safe }}
+        {{ prev.title|striptags|truncate(length=16, killwords=True) }}
+        </span>
+      </a>
+      {%- endif %}
+      {%- if next %}
+      <a href="{{ next.link|e }}" title="{{ _('Next Chapter: ') + next.title|striptags }}" class="pull-right">
+        {%- if theme_bootstrap_version == "2" -%}
+        <span class="icon-chevron-right visible-tablet"></span>
+        {%- endif -%}
+        {%- if theme_bootstrap_version == "3" -%}
+        <span class="glyphicon glyphicon-chevron-right visible-sm"></span>
+        {%- endif -%}
+        <span class="hidden-sm hidden-tablet">
+        {{ next.title|striptags|truncate(length=16, killwords=True) }}
+        {{ "&raquo;"|safe }}
+        </span>
+      </a>
+      {%- endif %}
+      <br/>
+    </p>
+  </div>
+
+  <hr style="border-top: 1px solid #ccc;"/>
+
+  <div class="container">
+    <table style="width: 100%;"><tr>
+    <td><ul class="list-inline" style="color: #666;">
+      <li>
+        {% trans copyright=copyright|e %}
+        &copy; Copyright {{ copyright }}
+        {% endtrans %}
+      </li>
+      <li style="padding: 0;">·</li>
+      <li><a href="https://pyforce.com.cn/" style="color: #666;">Xunpu (Huzhou) InfoTech Co.,Ltd.</a></li>
+    </ul></td>
+
+    <td style="width: auto;">&nbsp;</td>
+
+    <td class="text-right">
+      <a href="https://github.com/wilhelmshen/">
+        <img src="{{ pathto('_static/github.svg', 1) }}" style="border-radius: 4px; background: #666;" />
+      </a>
+      <a href="https://weibo.com/wilhelmshen/">
+        <img src="{{ pathto('_static/weibo.svg', 1) }}" style="border-radius: 4px; background: #666;" />
+      </a>
+      <a href="https://facebook.com/wilhelmshen/">
+        <img src="{{ pathto('_static/facebook.svg', 1) }}" style="border-radius: 4px; background: #666;" />
+      </a>
+      <a href="https://twitter.com/wilhelmshen/">
+        <img src="{{ pathto('_static/twitter.svg', 1) }}" style="border-radius: 4px; background: #666;" />
+      </a>
+      <br/>&nbsp;
+    </td>
+    </tr></table>
+  </div>
+</footer>
+{% endblock %}

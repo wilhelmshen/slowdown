@@ -45,7 +45,7 @@ import xxhash
 from . import lrucache
 
 default_aes_cache_size = 256
-default_hash_salt_size = 8
+default_hash_salt_size = 32
 default_hash_func = lambda s: hashlib.sha256(s).digest()
 default_max_token = 1048
 default_magic_bytes = xxhash.xxh32_digest(b'slowdown.token')
@@ -55,8 +55,7 @@ __all__ = ['AES_RC4', 'Hash']
 class Hash(object):
 
     (   "Hash("
-            "key:bytes, "
-            "salt_size:int=-1, "
+            "salt:bytes, "
             "max_token:int=-1, "
             "hash_func=None"
         ")" """
@@ -66,15 +65,10 @@ class Hash(object):
 
     __slots__ = ['data_idx',
                  'hash_func',
-                 'key',
                  'max_token',
-                 'salt_size']
+                 'salt']
 
-    def __init__(self, key, slat_size=-1, max_token=-1, hash_func=None):
-        if -1 == salt_size:
-            self.salt_size = default_hash_salt_size
-        else:
-            self.salt_size = salt_size
+    def __init__(self, salt=None, max_token=-1, hash_func=None):
         if -1 == max_token:
             self.max_token = default_max_token
         else:
@@ -83,8 +77,17 @@ class Hash(object):
             self.hash_func = default_hash_func
         else:
             self.hash_func = hash_func
-        self.key      = key
-        self.data_idx = self.salt_size + sha256_digest_size
+        self.data_idx = len(self.hash_func(b'test'))
+        if salt is None:
+            self.salt = Crypto \
+                      . Random \
+                      . get_random_bytes(default_hash_salt_size)
+        elif isinstance(salt, bytes):
+            self.salt = salt
+        elif isinstance(salt, str):
+            self.salt = salt.encode()
+        else:
+            raise TypeError('invalid salt type')
 
     def pack(self, data):
         (   "pack("
@@ -94,9 +97,8 @@ class Hash(object):
         Generate a token from the marshalable data.
         """)
         serialized = marshal.dumps(data)
-        salt       = Crypto.Random.get_random_bytes(self.salt_size)
-        digest     = self.hash_func(salt+serialized).digest()
-        b          = salt + digest + serialized
+        digest     = self.hash_func(self.salt+serialized)
+        b          = digest + serialized
         token      = base64.b64encode(b).decode('utf-8')
         if len(token) > self.max_token:
             raise ValueError('the generated token is too large')
@@ -113,10 +115,9 @@ class Hash(object):
         if len(token) > self.max_token:
             raise ValueError('token too large')
         b          = base64.b64decode(token)
-        salt       = b[             0:self.salt_size]
-        digest     = b[self.salt_size:self.data_idx ]
-        serialized = b[self.data_idx :              ]
-        if self.hash_func(salt+serialized).digest() != digest:
+        digest     = b[0            :self.data_idx]
+        serialized = b[self.data_idx:             ]
+        if self.hash_func(self.salt+serialized) != digest:
             raise VerificationError('Invalid token')
         return marshal.loads(serialized)
 
@@ -254,5 +255,3 @@ class Holder(object):
 class VerificationError(ValueError):
 
     pass
-
-sha256_digest_size = len(hashlib.sha256(b'MEANINGLESS').digest())

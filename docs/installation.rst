@@ -41,7 +41,7 @@ Server creation
 ---------------
 
 Server should be created before a web site is setted up. You can use
-`virtualenv`_ and the `slowdown --init` command to create a server.
+`virtualenv`_ and the ``slowdown --init`` command to create a server.
 
 .. code-block:: console
 
@@ -57,9 +57,9 @@ Server should be created before a web site is setted up. You can use
     Creating myproj/etc/slowdown.conf ... done
     DONE! Completed all initialization steps.
 
-You can also use the `slowdown --init` command with the `--home` option to
-specify a server home directory. System-wide python interpreter
-will be used.
+You can also use the ``slowdown --init`` command with the
+``--home DIRECTORY`` option to specify a server home directory. System-wide
+python interpreter will be used.
 
 .. code-block:: console
 
@@ -74,7 +74,7 @@ will be used.
     Creating myproj/etc/slowdown.conf ... done
     DONE! Completed all initialization steps.
 
-After all initialization steps are completed, the server folder called `myproj` will be created as follow.
+After all initialization steps are completed, the server folder called ``myproj`` will be created as follow.
 
 .. code-block:: text
 

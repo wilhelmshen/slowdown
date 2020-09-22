@@ -11,7 +11,7 @@ Getting Started
 Overview
 --------
 
-Slowdown is a coroutine-based Python web framework based on gevent.
+Slowdown is a coroutine-based Python web framework based on `gevent`__.
 Slowdown is written in pure `Python`__ and supports Python 3.6+.
 
 .. code-block:: python
@@ -21,6 +21,7 @@ Slowdown is written in pure `Python`__ and supports Python 3.6+.
     def GET(rw):
         rw.send_html_and_close(content='<html>Hello, World!</html>')
 
+__ https://www.gevent.org/
 __ https://www.python.org/
 
 
@@ -32,9 +33,8 @@ You can use `virtualenv`_ to create a server by the following commands.
 .. code-block:: console
 
     $ virtualenv --python=/usr/bin/python3 myproj
-    $ source myproj/bin/activate
-    (myproj) myproj/bin/pip3 install slowdown
-    (myproj) myproj/bin/slowdown --init
+    $ myproj/bin/pip3 install slowdown
+    $ myproj/bin/slowdown --init
     Initialize a project in /PATH/TO/myproj? [Y/n]: Y
     Creating myproj/bin ... exists
     Creating myproj/etc ... exists
@@ -45,7 +45,7 @@ You can use `virtualenv`_ to create a server by the following commands.
     Creating myproj/etc/slowdown.conf ... done
     DONE! Completed all initialization steps.
 
-Let's look at what `virtualenv`_ and `slowdown --init` created.
+Let's look at what `virtualenv`_ and ``slowdown --init`` created.
 
 .. code-block:: text
 
@@ -71,10 +71,11 @@ Start the slowdown server:
 The first website
 -----------------
 
-Web sites are placed in the `pkgs` dir as regular python packages and
+Web sites are placed in the ``pkgs`` dir as regular python packages and
 sometimes has the following structure:
 
 .. code-block:: text
+    :emphasize-lines: 3-6
 
     myproj/
         pkgs/
@@ -84,8 +85,8 @@ sometimes has the following structure:
                 __cgi__/
 
 
-Static files in the `__www__` dir shall be sent to the browser. And scripts
-in the `__cgi__` dir will be executed when requested.
+Static files in the ``__www__`` dir shall be sent to the browser. And
+scripts in the ``__cgi__`` dir will be executed when requested.
 
 So, you can create a python package as a container for site resources.
 
@@ -96,7 +97,7 @@ So, you can create a python package as a container for site resources.
     $ mkdir myproj/pkgs/mysite/__www__
     $ mkdir myproj/pkgs/mysite/__cgi__
 
-And add a script named `index.html.py` to the `__cgi__` folder.
+And add a script named ``index.html.py`` to the ``__cgi__`` folder.
 
 .. code-block:: python
 
@@ -105,7 +106,15 @@ And add a script named `index.html.py` to the `__cgi__` folder.
     def HTTP(rw):
         rw.send_html_and_close(content='<html>Hello, World!</html>')
 
-Then edit the config file `myproj/etc/slowdown.conf` :
+The ``index.html`` file in the ``__www__`` folder gives the same effect:
+
+.. code-block:: html
+
+    <!-- file: myproj/pkgs/mysite/__www__/index.html -->
+
+    <html>Hello, World!</html>
+
+Then edit the config file ``myproj/etc/slowdown.conf`` :
 
 .. code-block:: apacheconf
     :emphasize-lines: 7

@@ -8,9 +8,9 @@ Configuration
     :backlinks: none
 
 
-The config file of the slowdown server called `slowdown.conf` is placed in
-the `etc` folder. The following is a detailed config example of all the
-sections and options.
+The config file of the slowdown server called ``slowdown.conf`` is placed
+in the ``etc`` folder. The following is a detailed config example of all
+the sections and options.
 
 .. code-block:: apacheconf
 
@@ -171,7 +171,7 @@ sections and options.
 
 .. note::
 
-    `$` must escape to `$$` in patterns because `$` is used to define
+    ``$`` must escape to ``$$`` in patterns because ``$`` is used to define
     variables. See `ZConfig`_ for details.
 
 .. _ZConfig: https://zconfig.readthedocs.io/en/latest/

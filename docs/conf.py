@@ -19,7 +19,7 @@
 # -- Project information --------------------------------------------------
 
 project = 'Slowdown'
-copyright = '2020, Wilhelm Shen'
+copyright = '2020 Wilhelm Shen'
 author = 'Wilhelm Shen'
 
 # The full version, including alpha/beta/rc tags
@@ -120,7 +120,8 @@ html_theme_options = {
     # Note the "1" or "True" value above as the third argument to indicate
     # an arbitrary url.
     'navbar_links': [
-        ('中文', 'http://slowdown.pyforce.com.cn/', True),
+        ('Home', 'http://www.pyforce.com/', True),
+        ('中文', 'https://slowdown.pyforce.com.cn/', True),
     ],
 
     # Render the next and previous page links in navbar. (Default: true)

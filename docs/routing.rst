@@ -44,22 +44,22 @@ Defining a Router
         </router>
     </routers>
 
-1) The only `<routers>` tag contains all `<router>` tags.
-#) The `<router>` tag contains many `patterns` and `<host>` tags.
-   The `<host>` tag must have a uppercased name, that corresponds to the
+1) The only ``<routers>`` tag contains all ``<router>`` tags.
+#) The ``<router>`` tag contains many ``patterns`` and ``<host>`` tags.
+   The ``<host>`` tag must have a uppercased name, that corresponds to the
    name of the group contained in a pattern.
-#) The `<host>` tag contains many `patterns` and `<path>` tags.
-   The `<path>` tag must have a uppercased name, that corresponds to the
+#) The ``<host>`` tag contains many ``patterns`` and ``<path>`` tags.
+   The ``<path>`` tag must have a uppercased name, that corresponds to the
    name of the group contained in a pattern.
-#) The `<path>` tag must have a single `handler` option to link to a
-   python moudle/package that is usually called an `entrypoint`.
+#) The ``<path>`` tag must have a single ``handler`` option to link to a
+   python moudle/package that is usually called an **entrypoint**.
 #) When the server starts, the definition of all routers in the config file
    is loaded. Requests that match the appropriate rule are give to the
-   appropriate `handler` .
+   appropriate **handler** .
 
 .. note::
-    The `re` module is used here, and patterns should be written according
-    to the `python regex` convention.
+    The **re** module is used here, and patterns should be written
+    according to the `python regex` convention.
 
 .. note::
 
@@ -76,9 +76,9 @@ Handler
         handler entrypoint
     </path>
 
-The `handler` option in the config file is used to link to a module or
+The ``handler`` option in the config file is used to link to a module or
 package. The module or package being linked to needs to define a
-callable object named `handler` to processes the request.
+callable object named **handler(rw)** to processes the request.
 
 .. code-block:: python
 
@@ -143,9 +143,9 @@ filesystem locations.
         )
 
 Typically you don't need to create :py:class:`~slowdown.mapfs.Mapfs` object
-manually, you just create a package that doesn't contain the `handler`
-function, and the slowdown server automatically creates the `handler` at
-startup.
+manually, you just create a package that doesn't contain the
+**handler(rw)** function, and the slowdown server automatically creates the
+**handler** at startup.
 
 .. code-block:: text
 
@@ -156,6 +156,6 @@ startup.
                 __www__/
                 __cgi__/
 
-The automatically generated `handler` uses the `__www__` dir under the
-package dir as the folder of static files, and the `__cgi__` dir under the
-package dir as the folder of script files.
+The automatically generated **handler** uses the ``__www__`` dir under the
+package dir as the folder of static files, and the ``__cgi__`` dir under
+the package dir as the folder of script files.

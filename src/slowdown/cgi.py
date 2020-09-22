@@ -5,7 +5,8 @@
 :mod:`slowdown.cgi` -- Common Gateway Interface support
 =======================================================
 
-This module provides CGI protocol support for `Slowdown Web Programming` .
+This module provides CGI protocol support for **Slowdown Web Programming**
+.
 
 Examples:
 

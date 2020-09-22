@@ -37,8 +37,8 @@ Example::
     io_jobs = fs.spawn()     # begin IO loops
     gevent.joinall(io_jobs)
 
-Static files in the folder specified by the `www` parameter shall be sent
-to the browser. And scripts in the `scripts` folder will be executed
+Static files in the folder specified by the **www** parameter shall be sent
+to the browser. And scripts in the **scripts** folder will be executed
 when requested.
 
 The static file will be sent if the file and script are matched by the same
@@ -46,7 +46,7 @@ URL. If no files or scripts are matched, the existing index.html file or
 index_html script will be the choice.
 
 Swap files and hidden files whose names start with dot, end with tilde
-``~`` , and have .swp, .swx suffixes are ignored.
+``~`` , and have ``.swp``, ``.swx`` suffixes are ignored.
 
 Script samples:
 

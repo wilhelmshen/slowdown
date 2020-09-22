@@ -70,7 +70,7 @@ class LRUCache(object):
             "size:int=-1, "
             "expiration_time:float=-1, "
             "cleancycle:float=-1"
-        ") -> LRUCache" """
+        ")" """
 
     Dict-like Least Recently Used (LRU) cache.
     """)

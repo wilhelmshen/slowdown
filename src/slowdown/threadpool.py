@@ -9,8 +9,8 @@ A fake threadpool that does not actually use threads.
 
 Tasks performed in the fake threadpool shall block the entire program.
 The only purpose of this pool is to replace the standard
-`gevent.threadpool.ThreadPool` by changing the environment variable
-*GEVENT_THREADPOOL* before importing the gevent package
+**gevent.threadpool.ThreadPool** by changing the environment variable
+**GEVENT_THREADPOOL** before importing the gevent package
 so that the program can work in single-threaded mode.
 
 example:

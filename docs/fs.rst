@@ -53,8 +53,8 @@ yourself.
 Opening files
 -------------
 
-You can use the `open` method of the :py:class:`~slowdown.fs.FS` object
-to open a file. When the `fs.open()` is called a `gevent.fileobject` is
+You can use the **open** method of the :py:class:`~slowdown.fs.FS` object
+to open a file. When the **fs.open()** is called a **gevent.fileobject** is
 returned, see `gevent.fileobject`__ for details.
 
 .. note::
@@ -67,8 +67,8 @@ __ http://www.gevent.org/api/gevent.fileobject.html
 Miscellaneous FS interfaces
 ---------------------------
 
-:py:attr:`slowdown.fs.FS.os` is the cooperative version of the `os` module.
-It provides the following interfaces:
+:py:attr:`slowdown.fs.FS.os` is the cooperative version of the **os**
+module. It provides the following interfaces:
 
     access, chmod, chown, close, closerange, fchmod, fchown, fstat,
     fstatvfs, ftruncate, fwalk, lchown, link, listdir, lstat, makedirs,
@@ -76,7 +76,7 @@ It provides the following interfaces:
     walk
 
 :py:attr:`slowdown.fs.FS.os.path` is the cooperative version of the
-`os.apth` module. It provides the following interfaces:
+**os.path** module. It provides the following interfaces:
 
     abspath, exists, getatime, getctime, getmtime, getsize, isdir, isfile,
     islink, ismount, lexists, realpath, relpath

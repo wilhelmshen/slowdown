@@ -6,17 +6,17 @@
 =================================================
 
 This module defines a class, :class:`File`, which enhances
-`gevent.socket.socket` by supporting buffering file interfaces and the
+**gevent.socket.socket** by supporting buffering file interfaces and the
 HTTP/1.1 protocol.
 
-When the underlying **handler** of `gevent.server.Server` accepts
-parameters `socket` and `address`, this module provides another class,
-`Handler`, which turn the function that accepts the parameter **rw**
+When the underlying **handler** of **gevent.server.Server** accepts
+parameters **socket** and **address**, this module provides another class,
+**Handler**, which turn the function that accepts the parameter **rw**
 (which is a :class:`File` object) into the standard **handler** of
-`gevent.server.Server` .
+**gevent.server.Server** .
 
 In general, the :class:`File` object is sometimes called **rw** , which
-means the `Read-Write Pair` .
+means the **Read-Write Pair** .
 
 Examples:
 
@@ -154,7 +154,7 @@ class File(object):
     @property
     def cookie(self):
         """
-        Accessing cookies as a `http.cookies.SimpleCookie` object
+        Accessing cookies as a **http.cookies.SimpleCookie** object
 
         :rtype: http.cookies.SimpleCookie
         """
@@ -789,8 +789,8 @@ class Handler(object):
     :param int verbose:
 
         - **0** quiet
-        - **1** working at the log level `logging.INFO`
-        - **2** working at the log level `logging.DEBUG`
+        - **1** working at the log level **logging.INFO**
+        - **2** working at the log level **logging.DEBUG**
     """)
 
     __slots__ = ['file_type', 'handler', 'verbose']

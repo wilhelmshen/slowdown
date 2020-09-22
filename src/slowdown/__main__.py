@@ -75,6 +75,7 @@ import gevent.exceptions
 import gevent.server
 import gevent.signal
 import gevent.ssl
+import html
 import io
 import os
 import os.path
@@ -367,7 +368,7 @@ class Handler(object):
 
     """
     This class is used to handle the HTTP requests that arrive at the
-    `gevent.server.Server` .
+    **gevent.server.Server** .
     """
 
     __slots__ = ['application', 'router', 'verbose']
@@ -540,7 +541,7 @@ def load_module(entrypoint, verbose=0):
 class Broken(type(sys)):
 
     """
-    Returned by `load_module` when an import error occurs.
+    Returned by **load_module()** when an import error occurs.
     """
 
     __slots__ = ['content', 'exception', 'verbose']
@@ -1004,7 +1005,7 @@ def RegexString(s):
 class MatchResult(object):
 
     """
-    Returned by `Router.__call__` when a package is matched.
+    Returned by **Router.__call__()** when a package is matched.
     """
 
     __slots__ = ['host',
@@ -1017,11 +1018,11 @@ class MatchResult(object):
                  path_section):
         self.host      = host       #: matched host
         self.path_info = path_info  #: matched path_info
-        #: the matching `<router>` configuration section
+        #: the matching **<router>** configuration section
         self.router_section = router_section
-        #: the matching `<host>` configuration section
+        #: the matching **<host>** configuration section
         self.host_section = host_section
-        #: the matching `<path>` configuration section
+        #: the matching **<path>** configuration section
         self.path_section = path_section
 
 def NormalizedSectionName(section):

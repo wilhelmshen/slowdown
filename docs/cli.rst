@@ -11,8 +11,8 @@ Command line interface
 Usage
 -----
 
-The slowdown service can be controlled by a program called `slowdown`,
-which is located in the `bin` dir.
+The slowdown service can be controlled by a program called ``slowdown``,
+which is located in the ``bin`` dir.
 
 .. code-block:: console
 
@@ -31,7 +31,7 @@ Options
 
 .. option:: -f FILE, --file FILE
 
-    Config file, the default is `/PATH/TO/HOME/etc/slowdown.conf`
+    Config file, the default is ``/SERVER-HOME/etc/slowdown.conf``
 
 .. option:: -u USER, --user USER
 
@@ -48,15 +48,16 @@ Options
 
 .. option:: --init
 
-    Convert the working python virtualenv home folder to the project home.
+    Convert the folder specified by the ``--home DIRECTORY`` option to the
+    home folder of the server.
 
 .. option:: -v
 
-    Print debug messages to stdout, the debug level is logging.INFO .
+    Set debug level to **logging.INFO** .
 
 .. option:: -vv
 
-    Print debug messages to stdout, the debug level is logging.DEBUG .
+    Set debug level to **logging.DEBUG** .
 
 .. option:: -q
 
