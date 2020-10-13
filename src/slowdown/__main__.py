@@ -256,7 +256,7 @@ def spawn(**kwargs):
                         if www is not None or cgi is not None:
                             module.handler = \
                                 mapfs.Mapfs(
-                                    app,
+                                    fs_,
                                     www=www,
                                     cgi=cgi
                                 )

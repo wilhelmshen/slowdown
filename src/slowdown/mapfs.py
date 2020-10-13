@@ -148,8 +148,7 @@ class Mapfs(object):
     :param str cgi: the directory where scripts are stored.
     """)
 
-    __slots__ = ['application',
-                 'cgi_dir',
+    __slots__ = ['cgi_dir',
                  'fs',
                  'index_html',
                  'index_script',
@@ -164,12 +163,11 @@ class Mapfs(object):
                  'static_files_cache',
                  'www_dir']
 
-    def __init__(self, application, www, cgi, max_file_cache_size=None,
+    def __init__(self, fs, www, cgi, max_file_cache_size=None,
                  index_html=None, index_script=None):
-        self.application = application
-        self.fs          = application.fs
-        self.www_dir     = www
-        self.cgi_dir     = cgi
+        self.fs      = fs
+        self.www_dir = www
+        self.cgi_dir = cgi
         self.static_file_watchers = {}
         self.script_watchers      = {}
         if max_file_cache_size is None:
