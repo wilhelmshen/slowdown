@@ -426,8 +426,8 @@ class Handler(object):
                         environ['REQUEST_METHOD'],
                         environ['PATH_INFO'],
                         environ['REMOTE_ADDR'],
-                        environenviron.get('HTTP_USER_AGENT',
-                                           'Unknown User-Agent')
+                        environ.get('HTTP_USER_AGENT',
+                                    'Unknown User-Agent')
                     )
                 )
         else:
