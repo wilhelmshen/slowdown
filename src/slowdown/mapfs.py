@@ -62,14 +62,14 @@ Script samples:
         path2       = rw.environ['locals.path_info']    # -> /d/e/f/
         script_name = rw.environ['locals.script_name']  # -> /a/b/c/test1
         return \\
-            rw.start_html_and_close(
+            rw.send_html_and_close(
                 content='<html>It works!</html>'
             )
 
     def POST(rw):  # only POST requests are processed
         form = slowdown.cgi.Form(rw)
         return \\
-            rw.start_html_and_close(
+            rw.send_html_and_close(
                 content=f'<html>{form}</html>'
             )
 
@@ -90,13 +90,13 @@ Script samples:
         script_name = rw.environ['locals.script_name']  # -> /a/b/c/d/test2
         if 'GET' == rw.environ['REQUEST_METHOD']:
             return \\
-                rw.start_html_and_close(
+                rw.send_html_and_close(
                     content='<html>It works!</html>'
                 )
         elif 'POST' == rw.environ['REQUEST_METHOD']:
             form = slowdown.cgi.Form(rw)
             return \\
-                rw.start_html_and_close(
+                rw.send_html_and_close(
                     content=f'<html>{form}</html>'
                 )
         else:
