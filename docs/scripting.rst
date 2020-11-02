@@ -106,14 +106,14 @@ script samples:
         path2       = rw.environ['locals.path_info']    # -> /d/e/f/
         script_name = rw.environ['locals.script_name']  # -> /a/b/c/test1
         return \
-            rw.start_html_and_close(
+            rw.send_html_and_close(
                 content='<html>It works!</html>'
             )
 
     def POST(rw):  # only POST requests are processed
         form = slowdown.cgi.Form(rw)
         return \
-            rw.start_html_and_close(
+            rw.send_html_and_close(
                 content=f'<html>{form}</html>'
             )
 
@@ -133,13 +133,13 @@ script samples:
         script_name = rw.environ['locals.script_name']  # -> /a/b/c/d/test2
         if 'GET' == rw.environ['REQUEST_METHOD']:
             return \
-                rw.start_html_and_close(
+                rw.send_html_and_close(
                     content='<html>It works!</html>'
                 )
         elif 'POST' == rw.environ['REQUEST_METHOD']:
             form = slowdown.cgi.Form(rw)
             return \
-                rw.start_html_and_close(
+                rw.send_html_and_close(
                     content=f'<html>{form}</html>'
                 )
         else:
@@ -316,10 +316,12 @@ Example:
 Streaming responses
 ^^^^^^^^^^^^^^^^^^^
 
-- :py:meth:`slowdown.__main__.HTTPRWPair.start_response`
-- :py:meth:`slowdown.__main__.HTTPRWPair.start_chunked`
-- :py:meth:`slowdown.__main__.HTTPRWPair.write`
-- :py:meth:`slowdown.__main__.HTTPRWPair.close`
+Stream interfaces of :py:class:`~slowdown.__main__.HTTPRWPair`:
+
+    - :py:meth:`~slowdown.http.File.start_response`
+    - :py:meth:`~slowdown.http.File.start_chunked`
+    - :py:meth:`~slowdown.http.File.write`
+    - :py:meth:`~slowdown.http.File.close`
 
 Example:
 
@@ -336,24 +338,25 @@ Example:
         rw.close()
 
 
-Quick response utils
-^^^^^^^^^^^^^^^^^^^^
-
-- :py:meth:`slowdown.__main__.HTTPRWPair.send_response_and_close`
-- :py:meth:`slowdown.__main__.HTTPRWPair.send_html_and_close`
-- :py:meth:`slowdown.__main__.HTTPRWPair.not_modified`
-- :py:meth:`slowdown.__main__.HTTPRWPair.bad_request`
-- :py:meth:`slowdown.__main__.HTTPRWPair.forbidden`
-- :py:meth:`slowdown.__main__.HTTPRWPair.not_found`
-- :py:meth:`slowdown.__main__.HTTPRWPair.method_not_allowed`
-- :py:meth:`slowdown.__main__.HTTPRWPair.request_entity_too_large`
-- :py:meth:`slowdown.__main__.HTTPRWPair.request_uri_too_large`
-- :py:meth:`slowdown.__main__.HTTPRWPair.internal_server_error`
-- :py:meth:`slowdown.__main__.HTTPRWPair.multiple_choices`
-- :py:meth:`slowdown.__main__.HTTPRWPair.moved_permanently`
-- :py:meth:`slowdown.__main__.HTTPRWPair.found`
-- :py:meth:`slowdown.__main__.HTTPRWPair.see_other`
-- :py:meth:`slowdown.__main__.HTTPRWPair.temporary_redirect`
+================= ========================================================
+ Response Status                           Method
+================= ========================================================
+        /          :py:meth:`~slowdown.http.File.send_response_and_close`
+        /          :py:meth:`~slowdown.http.File.send_html_and_close`
+     **304**       :py:meth:`~slowdown.http.File.not_modified`
+     **400**       :py:meth:`~slowdown.http.File.bad_request`
+     **403**       :py:meth:`~slowdown.http.File.forbidden`
+     **404**       :py:meth:`~slowdown.http.File.not_found`
+     **405**       :py:meth:`~slowdown.http.File.method_not_allowed`
+     **413**       :py:meth:`~slowdown.http.File.request_entity_too_large`
+     **414**       :py:meth:`~slowdown.http.File.request_uri_too_large`
+     **500**       :py:meth:`~slowdown.http.File.internal_server_error`
+     **300**       :py:meth:`~slowdown.http.File.multiple_choices`
+     **301**       :py:meth:`~slowdown.http.File.moved_permanently`
+     **302**       :py:meth:`~slowdown.http.File.found`
+     **303**       :py:meth:`~slowdown.http.File.see_other`
+     **307**       :py:meth:`~slowdown.http.File.temporary_redirect`
+================= ========================================================
 
 Example:
 

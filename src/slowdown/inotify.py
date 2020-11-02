@@ -111,10 +111,15 @@ class Inotify(object):
             self.encoding = encoding
 
     def __del__(self):
+        if -1 == self.fd:
+            return
         for wd, dummy in self.cbs.items():
             libc.inotify_rm_watch(self.fd, wd)
         self.reader.close()
-        os.close(self.fd)
+        try:
+            os.close(self.fd)
+        except:
+            pass
 
     def add_watch(self, name, mask, callback):
         wd = \

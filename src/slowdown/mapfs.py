@@ -43,7 +43,7 @@ when requested.
 
 The static file will be sent if the file and script are matched by the same
 URL. If no files or scripts are matched, the existing index.html file or
-index_html script will be the choice.
+index.html.py script will be the choice.
 
 Swap files and hidden files whose names start with dot, end with tilde
 ``~`` , and have ``.swp``, ``.swx`` suffixes are ignored.
@@ -62,14 +62,14 @@ Script samples:
         path2       = rw.environ['locals.path_info']    # -> /d/e/f/
         script_name = rw.environ['locals.script_name']  # -> /a/b/c/test1
         return \\
-            rw.start_html_and_close(
+            rw.send_html_and_close(
                 content='<html>It works!</html>'
             )
 
     def POST(rw):  # only POST requests are processed
         form = slowdown.cgi.Form(rw)
         return \\
-            rw.start_html_and_close(
+            rw.send_html_and_close(
                 content=f'<html>{form}</html>'
             )
 
@@ -90,13 +90,13 @@ Script samples:
         script_name = rw.environ['locals.script_name']  # -> /a/b/c/d/test2
         if 'GET' == rw.environ['REQUEST_METHOD']:
             return \\
-                rw.start_html_and_close(
+                rw.send_html_and_close(
                     content='<html>It works!</html>'
                 )
         elif 'POST' == rw.environ['REQUEST_METHOD']:
             form = slowdown.cgi.Form(rw)
             return \\
-                rw.start_html_and_close(
+                rw.send_html_and_close(
                     content=f'<html>{form}</html>'
                 )
         else:
@@ -137,7 +137,7 @@ class Mapfs(object):
             "cgi:str, "
             "max_file_cache_size:int=0x200000, "
             "index_html:str='index.html', "
-            "index_script:str='index_html'"
+            "index_script:str='index.html'"
         ")" """
 
     A tiny web framework that simply maps the URL to the disk location.

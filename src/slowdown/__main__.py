@@ -67,6 +67,10 @@ Examples:
     )
 """
 
+import sys
+
+sys.dont_write_bytecode = True
+
 import argparse
 import copy
 import collections
@@ -81,7 +85,6 @@ import os
 import os.path
 import re
 import resource
-import sys
 import traceback
 import weakref
 import ZConfig.loader
@@ -95,7 +98,7 @@ from . import sysutil
 from . import   __doc__   as package__doc__
 from . import __version__
 
-__all__ = ['Application', 'main']
+__all__ = ['Application', 'Handler', 'main', 'MatchResult', 'HTTPRWPair']
 
 def main(**kwargs):
     (   "main("
@@ -122,6 +125,31 @@ class Application(object):
     A runtime object created by the __main__.main function that contains
     configuration information from the command line, profile, and the
     arguments in the __main__.main function.
+
+    .. py:attribute:: fs
+        :type: slowdown.fs.FS
+
+        The FS object to indicate a specific filesystem that contains
+        static files and scripts.
+
+    .. py:attribute:: modules
+        :type: dict
+
+        The attribute holds modules specified in the ``<modules>``
+        section and registered with ``<path>handler MODULE</path>``
+        of the configration.
+
+    .. py:attribute:: opts
+
+        The active application options.
+
+    .. py:attribute:: args
+
+        The original arguments from command line.
+
+    .. py:attribute:: cfg
+
+        The original configuration.
     """
 
     __slots__ = ['anonymous',
@@ -151,6 +179,7 @@ class Application(object):
         for servers in list(self.servers.values()) + [self.anonymous]:
             for server in servers:
                 server.stop()
+                server.close()
         for filename, file in self.logfiles.items():
             try:
                 file.close()
@@ -426,8 +455,8 @@ class Handler(object):
                         environ['REQUEST_METHOD'],
                         environ['PATH_INFO'],
                         environ['REMOTE_ADDR'],
-                        environenviron.get('HTTP_USER_AGENT',
-                                           'Unknown User-Agent')
+                        environ.get('HTTP_USER_AGENT',
+                                    'Unknown User-Agent')
                     )
                 )
         else:
@@ -503,6 +532,26 @@ class Handler(object):
             )
 
 class HTTPRWPair(http.File):
+
+    """
+    Enhances gevent.socket.socket by supporting buffering file interfaces
+    and the HTTP/1.1 protocol.
+
+    .. py:attribute:: match
+        :type: MatchResult
+
+        The matching configuration.
+
+    .. py:attribute:: accesslog
+        :type: slowdown.logging.Logger
+
+        The access logger object.
+
+    .. py:attribute:: errorlog
+        :type: slowdown.logging.Logger
+
+        The error logger object.
+    """
 
     __slots__ = ['application', 'match']
 
