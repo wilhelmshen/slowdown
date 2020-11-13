@@ -22,7 +22,7 @@ Examples:
     # Those parameters can be used to override the configuration in the
     # config file.
     slowdown.__main__.main(
-        # Home directory, including bin, etc, lib, var folders.
+        # Home directory, including bin, etc, lib, logs, var folders.
         home='PATH/TO/HOME/DIRECTORY',
 
         # the working directory
@@ -114,6 +114,12 @@ def main(**kwargs):
         jobs = spawn(**kwargs)
     except SystemExit as err:
         sys.exit(err.code)
+    except Exception as err:
+        gvars.logger.error(str(err))
+        if len(err.args) > 0 and isinstance(err.args[1], int):
+            sys.exit(err.args[1])
+        else:
+            sys.exit(1)
     try:
         gevent.joinall(jobs)
     except gevent.exceptions.BlockingSwitchOutError:
@@ -375,6 +381,10 @@ def spawn(**kwargs):
             sysutil.setuid(opts.user)
         except Exception as err:
             parser.error(f'{err}')
+    for dir_ in [os.path.join(opts.home, 'logs'),
+                 os.path.join(opts.home, 'var')]:
+        if not os.access(dir_, os.W_OK | os.X_OK):
+            raise PermissionError(13, f'Permission denied: {dir_}')
     for entrypoint, module in modules.items():
         if hasattr(module, 'initialize') and callable(module.initialize):
             jobs.append(gevent.spawn(module.initialize, app))

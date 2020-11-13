@@ -24,7 +24,8 @@ setuptools.setup(
     install_requires=
              [
                       'captcha>=0.3',
-                       'gevent>=20.4.0',
+                       'gevent==20.4.0',
+                     'greenlet==0.4.16',
                  'pycryptodome>=3.9.7',
                        'xxhash>=1.4.4',
                       'ZConfig>=3.5.0'
