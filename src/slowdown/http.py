@@ -966,6 +966,8 @@ def new_environ(reader, server_side=True):
     return environ
 
 def translate_url(base, url):
+    if is_absolute_url.search(url):
+        return url
     if not base.endswith('/'):
         base = base + '/'
     url = url.lstrip('/')
@@ -1029,6 +1031,7 @@ regx_first_header_client_side = \
         br']*|[ \t]*)\r?\n$'
     ), re.I)
 regx_keep_alive = re.compile(r'^\s*[1-9][0-9]{0,6}\s*$')
+is_absolute_url = re.compile(r'http://|https://|ftp://|ftps://|file://')
 http_400_content = '''\
 <html><head><title>400 Bad Request</title></head><body><h1>Bad Request</h1\
 >Your browser sent a request that this server could not understand.<p>clie\

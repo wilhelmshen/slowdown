@@ -115,7 +115,7 @@ def main(**kwargs):
     except SystemExit as err:
         sys.exit(err.code)
     except Exception as err:
-        gvars.logger.error(str(err))
+        print (err)
         if len(err.args) > 0 and isinstance(err.args[1], int):
             sys.exit(err.args[1])
         else:
@@ -506,9 +506,11 @@ class Handler(object):
                     environ['PATH_INFO']
             )
         if result is None:
+            rw.match = None
             return rw.bad_request()
         module = self.application.modules.get(result.path_section.handler)
         if module is None or not hasattr(module, 'handler'):
+            rw.match = None
             return rw.not_found()
         environ['locals.path_info'] = result.path_info
         rw.application = self.application

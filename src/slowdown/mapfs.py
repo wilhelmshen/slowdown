@@ -208,16 +208,17 @@ class Mapfs(object):
                 lrucache.LRUCache(size=default_scripts_cache_size)
 
     def __del__(self):
-        for wd, dummy in self.static_file_watchers.items():
-            try:
-                self.fs.inotify.rm_watch(wd)
-            except KeyError:
-                pass
-        for wd, dummy in self.script_watchers.items():
-            try:
-                self.fs.inotify.rm_watch(wd)
-            except KeyError:
-                pass
+        if self.fs and self.fs.inotify and inotify:
+            for wd, dummy in self.static_file_watchers.items():
+                try:
+                    self.fs.inotify.rm_watch(wd)
+                except KeyError:
+                    pass
+            for wd, dummy in self.script_watchers.items():
+                try:
+                    self.fs.inotify.rm_watch(wd)
+                except KeyError:
+                    pass
 
     def __call__(self, rw):
         (   "__call__("
