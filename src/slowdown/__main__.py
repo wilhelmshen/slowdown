@@ -1191,7 +1191,7 @@ schema = '''
 ###########################################################################
 
 def init(args):
-    home = args.home
+    home = os.path.abspath(args.home)
     while True:
         a1 = input(f'Initialize a project in {home}? [Y/n]:')
         a2 = a1.strip().lower()
@@ -1228,9 +1228,14 @@ def init(args):
     sys.stdout.write(f'Creating {script_path} ... ')
     sys.stdout.flush()
     if   not os.path.exists(script_path):
+
+        import stat
+
         code = script_in.format(interpreter=sys.executable)
         with open(script_path, 'wb') as file_out:
             file_out.write(code.encode())
+        st = os.stat(script_path)
+        os.chmod(script_path, st.st_mode | stat.S_IEXEC)
         print ('done')
     elif not os.path.isfile(script_path):
         print (f'ERROR! {dir_} exists, but is not a file.')
